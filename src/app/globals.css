@@ -1,0 +1,11 @@
+@import "tailwindcss";
+@plugin "daisyui";
+
+html {
+  min-height: 100%;
+}
+
+body {
+  min-height: 100vh;
+  font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+}
