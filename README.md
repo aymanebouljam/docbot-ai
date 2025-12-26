@@ -10,6 +10,12 @@ DocBot AI is a medical-only chatbot built with Next.js, TypeScript, Tailwind CSS
 - Added Prisma with SQLite, Vitest, Testing Library, Zod, and Prettier.
 - Added a branded home page smoke target, Prisma client setup, and smoke tests.
 
+### Slice 1
+
+- Replaced the static landing page with a responsive ChatGPT-style medical chat shell.
+- Added message bubbles, empty state prompts, composer UX, and assistant loading feedback.
+- Added component tests for input render, disabled submit, user message rendering, and loading state.
+
 ## Getting Started
 
 1. Install dependencies with `pnpm install`.
