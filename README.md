@@ -22,6 +22,11 @@ DocBot AI is a medical-only chatbot built with Next.js, TypeScript, Tailwind CSS
 - Added route handlers for creating chats, loading chats, and posting user messages.
 - Added repository integration tests and a route test that verifies persisted user messages.
 
+### Slice 3
+
+- Added a deterministic medical domain classifier with rule, phrase, and intent heuristics.
+- Covered the classifier with a 25-case unit test matrix across medical, non-medical, and uncertain prompts.
+
 ## Getting Started
 
 1. Install dependencies with `pnpm install`.
