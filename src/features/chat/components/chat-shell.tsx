@@ -6,6 +6,11 @@ import {
   CHAT_DISCLAIMER,
   SUGGESTED_MEDICAL_PROMPTS,
 } from "@/features/chat/constants";
+import { classifyDomain } from "@/features/domain/classifier";
+import {
+  buildDomainFallbackResponse,
+  isBlockedDomainClassification,
+} from "@/features/domain/fallback";
 import type { ChatMessage } from "@/features/chat/types";
 
 const ASSISTANT_PLACEHOLDER_DELAY_MS = 1400;
@@ -20,6 +25,23 @@ export function ChatShell() {
   const [isResponding, setIsResponding] = useState(false);
 
   function queueAssistantReply(prompt: string) {
+    const classification = classifyDomain(prompt);
+
+    if (isBlockedDomainClassification(classification)) {
+      const fallback = buildDomainFallbackResponse(classification);
+
+      setMessages((currentMessages) => [
+        ...currentMessages,
+        {
+          id: crypto.randomUUID(),
+          role: "assistant",
+          content: fallback.content,
+          suggestedPrompts: fallback.suggestedPrompts,
+        },
+      ]);
+      return;
+    }
+
     setIsResponding(true);
 
     window.setTimeout(() => {
@@ -188,6 +210,21 @@ export function ChatShell() {
                       >
                         {message.content}
                       </div>
+                      {message.role === "assistant" &&
+                      message.suggestedPrompts?.length ? (
+                        <div className="mt-3 flex max-w-[85%] flex-wrap gap-2">
+                          {message.suggestedPrompts.map((prompt) => (
+                            <button
+                              key={`${message.id}-${prompt}`}
+                              type="button"
+                              className="btn btn-xs btn-outline btn-info rounded-full"
+                              onClick={() => setDraft(prompt)}
+                            >
+                              {prompt}
+                            </button>
+                          ))}
+                        </div>
+                      ) : null}
                     </article>
                   ))}
 

@@ -4,4 +4,5 @@ export type ChatMessage = {
   id: string;
   role: ChatRole;
   content: string;
+  suggestedPrompts?: string[];
 };
