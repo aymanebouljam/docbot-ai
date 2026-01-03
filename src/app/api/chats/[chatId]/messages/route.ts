@@ -1,4 +1,4 @@
-import { addUserMessageToChat } from "@/server/chat-service";
+import { processUserMessage } from "@/server/chat-service";
 
 type ChatMessagesRouteContext = {
   params: Promise<{ chatId: string }>;
@@ -19,11 +19,14 @@ export async function POST(request: Request, context: ChatMessagesRouteContext) 
     );
   }
 
-  const message = await addUserMessageToChat(chatId, body.content);
+  const result = await processUserMessage({
+    chatId,
+    content: body.content,
+  });
 
-  if (!message) {
+  if (!result) {
     return Response.json({ error: "Chat not found." }, { status: 404 });
   }
 
-  return Response.json({ message }, { status: 201 });
+  return Response.json(result, { status: 201 });
 }
