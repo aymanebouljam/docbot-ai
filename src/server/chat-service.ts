@@ -86,23 +86,39 @@ export async function processUserMessage(input: {
     };
   }
 
-  const medicalReply = await input.generateMedicalReply({
-    chatId: input.chatId,
-    content: trimmedContent,
-  });
+  try {
+    const medicalReply = await input.generateMedicalReply({
+      chatId: input.chatId,
+      content: trimmedContent,
+    });
 
-  const assistantMessage = await addMessageToChat({
-    chatId: input.chatId,
-    content: medicalReply,
-    role: MessageRole.assistant,
-  });
+    const assistantMessage = await addMessageToChat({
+      chatId: input.chatId,
+      content: medicalReply,
+      role: MessageRole.assistant,
+    });
 
-  return {
-    classification,
-    userMessage,
-    assistantMessage,
-    suggestedPrompts: [],
-  };
+    return {
+      classification,
+      userMessage,
+      assistantMessage,
+      suggestedPrompts: [],
+    };
+  } catch {
+    const assistantMessage = await addMessageToChat({
+      chatId: input.chatId,
+      content:
+        "I'm having trouble generating a medical response right now. Please try again in a moment.",
+      role: MessageRole.assistant,
+    });
+
+    return {
+      classification,
+      userMessage,
+      assistantMessage,
+      suggestedPrompts: [],
+    };
+  }
 }
 
 export async function loadChat(chatId: string): Promise<ChatWithMessages | null> {

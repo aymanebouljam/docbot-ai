@@ -1,4 +1,5 @@
 import { processUserMessage } from "@/server/chat-service";
+import { generateMedicalAnswer } from "@/server/groq";
 
 type ChatMessagesRouteContext = {
   params: Promise<{ chatId: string }>;
@@ -22,6 +23,10 @@ export async function POST(request: Request, context: ChatMessagesRouteContext) 
   const result = await processUserMessage({
     chatId,
     content: body.content,
+    generateMedicalReply: async ({ content }) =>
+      generateMedicalAnswer({
+        prompt: content,
+      }),
   });
 
   if (!result) {
