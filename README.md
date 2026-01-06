@@ -33,6 +33,12 @@ DocBot AI is a medical-only chatbot built with Next.js, TypeScript, Tailwind CSS
 - Wired the fallback flow into server-side message processing so blocked prompts persist both the user message and assistant redirect.
 - Updated the chat shell so blocked prompts render the friendly fallback and prompt suggestions in the UI.
 
+### Slice 5
+
+- Added a server-only Groq client wrapper with a medical-focused system prompt, timeout handling, and graceful provider failure handling.
+- Wired medical prompts through the Groq path while preserving the existing non-medical block before any provider call.
+- Added unit tests for Groq success/failure plus integration coverage for medical-path routing and blocked-path behavior.
+
 ## Getting Started
 
 1. Install dependencies with `pnpm install`.
