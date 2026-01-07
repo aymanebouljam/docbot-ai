@@ -5,4 +5,5 @@ export type ChatMessage = {
   role: ChatRole;
   content: string;
   suggestedPrompts?: string[];
+  tone?: "standard" | "urgent";
 };

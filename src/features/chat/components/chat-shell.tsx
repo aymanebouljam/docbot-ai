@@ -11,6 +11,8 @@ import {
   buildDomainFallbackResponse,
   isBlockedDomainClassification,
 } from "@/features/domain/fallback";
+import { assessMedicalSafety } from "@/features/medical-safety/checker";
+import { buildUrgentMedicalResponse } from "@/features/medical-safety/response";
 import type { ChatMessage } from "@/features/chat/types";
 
 const ASSISTANT_PLACEHOLDER_DELAY_MS = 1400;
@@ -23,6 +25,7 @@ export function ChatShell() {
   const [draft, setDraft] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isResponding, setIsResponding] = useState(false);
+  const [emergencyBanner, setEmergencyBanner] = useState<string | null>(null);
 
   function queueAssistantReply(prompt: string) {
     const classification = classifyDomain(prompt);
@@ -42,6 +45,25 @@ export function ChatShell() {
       return;
     }
 
+    const safetyAssessment = assessMedicalSafety(prompt);
+
+    if (safetyAssessment.level === "urgent") {
+      const urgentResponse = buildUrgentMedicalResponse();
+
+      setEmergencyBanner(urgentResponse);
+      setMessages((currentMessages) => [
+        ...currentMessages,
+        {
+          id: crypto.randomUUID(),
+          role: "assistant",
+          content: urgentResponse,
+          tone: "urgent",
+        },
+      ]);
+      return;
+    }
+
+    setEmergencyBanner(null);
     setIsResponding(true);
 
     window.setTimeout(() => {
@@ -149,6 +171,12 @@ export function ChatShell() {
           </aside>
 
           <section className="flex min-h-[70vh] flex-col rounded-[2rem] border border-base-300 bg-base-100 shadow-xl shadow-sky-100/80">
+            {emergencyBanner ? (
+              <div className="border-b border-error/30 bg-error/10 px-5 py-4 text-sm leading-6 text-error-content">
+                <p className="font-semibold text-error">Urgent safety guidance</p>
+                <p className="mt-1 text-base-content/80">{emergencyBanner}</p>
+              </div>
+            ) : null}
             <div className="border-b border-base-200 px-5 py-4">
               <div className="flex items-center justify-between gap-3">
                 <div>
@@ -205,7 +233,9 @@ export function ChatShell() {
                         className={`chat-bubble max-w-[85%] whitespace-pre-wrap text-sm leading-6 sm:text-base ${
                           message.role === "user"
                             ? "chat-bubble-info text-info-content"
-                            : "bg-base-200 text-base-content"
+                            : message.tone === "urgent"
+                              ? "border border-error/30 bg-error/10 text-base-content"
+                              : "bg-base-200 text-base-content"
                         }`}
                       >
                         {message.content}

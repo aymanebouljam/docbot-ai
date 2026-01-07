@@ -3,6 +3,8 @@ import {
   buildDomainFallbackResponse,
   isBlockedDomainClassification,
 } from "@/features/domain/fallback";
+import { assessMedicalSafety } from "@/features/medical-safety/checker";
+import { buildUrgentMedicalResponse } from "@/features/medical-safety/response";
 import { MessageRole } from "@/generated/prisma/enums";
 
 import {
@@ -77,12 +79,32 @@ export async function processUserMessage(input: {
     };
   }
 
+  const safetyAssessment = assessMedicalSafety(trimmedContent);
+
+  if (safetyAssessment.level === "urgent") {
+    const urgentResponse = buildUrgentMedicalResponse();
+    const assistantMessage = await addMessageToChat({
+      chatId: input.chatId,
+      content: urgentResponse,
+      role: MessageRole.assistant,
+    });
+
+    return {
+      classification,
+      userMessage,
+      assistantMessage,
+      suggestedPrompts: [],
+      safetyLevel: safetyAssessment.level,
+    };
+  }
+
   if (!input.generateMedicalReply) {
     return {
       classification,
       userMessage,
       assistantMessage: null,
       suggestedPrompts: [],
+      safetyLevel: safetyAssessment.level,
     };
   }
 
@@ -103,6 +125,7 @@ export async function processUserMessage(input: {
       userMessage,
       assistantMessage,
       suggestedPrompts: [],
+      safetyLevel: safetyAssessment.level,
     };
   } catch {
     const assistantMessage = await addMessageToChat({
@@ -117,6 +140,7 @@ export async function processUserMessage(input: {
       userMessage,
       assistantMessage,
       suggestedPrompts: [],
+      safetyLevel: safetyAssessment.level,
     };
   }
 }
