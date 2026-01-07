@@ -21,6 +21,8 @@ const MEDICAL_PHRASES = [
   "kidney function",
   "thyroid level",
   "pregnancy test",
+  "hurt myself",
+  "kill myself",
 ];
 
 const MEDICAL_KEYWORDS = [
@@ -70,8 +72,11 @@ const MEDICAL_KEYWORDS = [
   "scan",
   "seizure",
   "serum",
+  "self-harm",
   "symptom",
   "symptoms",
+  "suicidal",
+  "suicide",
   "therapy",
   "treatment",
   "vaccine",
