@@ -99,4 +99,65 @@ describe("chat message route", () => {
     );
     expect(global.fetch).not.toHaveBeenCalled();
   });
+
+  it("stores urgent safety guidance for red-flag prompts", async () => {
+    const chat = await createChatSession();
+
+    const response = await POST(
+      new Request("http://localhost/api/chats/messages", {
+        method: "POST",
+        body: JSON.stringify({
+          content: "I have crushing chest pain and can't breathe",
+        }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }),
+      {
+        params: Promise.resolve({ chatId: chat.id }),
+      }
+    );
+
+    expect(response.status).toBe(201);
+
+    const responseBody = (await response.json()) as {
+      safetyLevel: string;
+    };
+    const persistedChat = await getChatById(chat.id);
+
+    expect(responseBody.safetyLevel).toBe("urgent");
+    expect(persistedChat?.messages).toHaveLength(2);
+    expect(persistedChat?.messages[1]?.content).toMatch(
+      /seek immediate medical care now/i
+    );
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it("stores urgent crisis-safe guidance for suicidal wording", async () => {
+    const chat = await createChatSession();
+
+    const response = await POST(
+      new Request("http://localhost/api/chats/messages", {
+        method: "POST",
+        body: JSON.stringify({
+          content: "I feel suicidal and want to hurt myself",
+        }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }),
+      {
+        params: Promise.resolve({ chatId: chat.id }),
+      }
+    );
+
+    expect(response.status).toBe(201);
+
+    const persistedChat = await getChatById(chat.id);
+
+    expect(persistedChat?.messages[1]?.content).toMatch(
+      /seek immediate medical care now/i
+    );
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
 });

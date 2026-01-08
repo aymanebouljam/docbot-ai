@@ -63,4 +63,23 @@ describe("chat service domain gating", () => {
       /having trouble generating a medical response/i
     );
   });
+
+  it("does not call the medical reply generator for urgent prompts", async () => {
+    const chat = await createChat();
+    const generateMedicalReply = vi.fn(
+      async () => "This should not run for urgent cases"
+    );
+
+    const result = await processUserMessage({
+      chatId: chat.id,
+      content: "I have crushing chest pain and can't breathe",
+      generateMedicalReply,
+    });
+
+    expect(generateMedicalReply).not.toHaveBeenCalled();
+    expect(result?.safetyLevel).toBe("urgent");
+    expect(result?.assistantMessage?.content).toMatch(
+      /seek immediate medical care now/i
+    );
+  });
 });
