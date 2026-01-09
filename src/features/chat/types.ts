@@ -7,3 +7,13 @@ export type ChatMessage = {
   suggestedPrompts?: string[];
   tone?: "standard" | "urgent";
 };
+
+export type PersistedChat = {
+  id: string;
+  title: string | null;
+  messages: Array<{
+    id: string;
+    role: "user" | "assistant" | "system";
+    content: string;
+  }>;
+};
