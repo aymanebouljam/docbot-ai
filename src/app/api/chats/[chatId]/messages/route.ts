@@ -23,9 +23,10 @@ export async function POST(request: Request, context: ChatMessagesRouteContext) 
   const result = await processUserMessage({
     chatId,
     content: body.content,
-    generateMedicalReply: async ({ content }) =>
+    generateMedicalReply: async ({ content, history }) =>
       generateMedicalAnswer({
         prompt: content,
+        history,
       }),
   });
 

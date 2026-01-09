@@ -1,106 +1,239 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, startTransition, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import {
   CHAT_DISCLAIMER,
   SUGGESTED_MEDICAL_PROMPTS,
 } from "@/features/chat/constants";
-import { classifyDomain } from "@/features/domain/classifier";
-import {
-  buildDomainFallbackResponse,
-  isBlockedDomainClassification,
-} from "@/features/domain/fallback";
-import { assessMedicalSafety } from "@/features/medical-safety/checker";
-import { buildUrgentMedicalResponse } from "@/features/medical-safety/response";
-import type { ChatMessage } from "@/features/chat/types";
+import { mapPersistedChatMessages } from "@/features/chat/message-mappers";
+import type { ChatMessage, PersistedChat } from "@/features/chat/types";
+import { URGENT_MEDICAL_RESPONSE } from "@/features/medical-safety/response";
 
-const ASSISTANT_PLACEHOLDER_DELAY_MS = 1400;
+type ChatShellProps = {
+  initialChatId?: string | null;
+};
 
-function buildAssistantPlaceholder(prompt: string) {
-  return `Thanks for your question about "${prompt}". Medical answer generation will be connected in a later slice.`;
+type CreateChatResponse = {
+  chat: {
+    id: string;
+  };
+};
+
+type ChatResponse = {
+  chat: PersistedChat;
+};
+
+type PostMessageResponse = {
+  userMessage: {
+    id: string;
+    role: "user";
+    content: string;
+  };
+  assistantMessage: {
+    id: string;
+    role: "assistant";
+    content: string;
+  } | null;
+  suggestedPrompts?: string[];
+  safetyLevel?: "standard" | "urgent";
+};
+
+function isUrgentMessage(message: ChatMessage | null | undefined) {
+  return (
+    message?.role === "assistant" &&
+    message.tone === "urgent" &&
+    message.content === URGENT_MEDICAL_RESPONSE
+  );
 }
 
-export function ChatShell() {
+function buildUiMessage(input: {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  suggestedPrompts?: string[];
+  safetyLevel?: "standard" | "urgent";
+}): ChatMessage {
+  return {
+    id: input.id,
+    role: input.role,
+    content: input.content,
+    suggestedPrompts: input.suggestedPrompts,
+    tone:
+      input.role === "assistant" && input.safetyLevel === "urgent"
+        ? "urgent"
+        : "standard",
+  };
+}
+
+export function ChatShell({ initialChatId = null }: ChatShellProps) {
+  const router = useRouter();
   const [draft, setDraft] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [chatId, setChatId] = useState<string | null>(initialChatId);
   const [isResponding, setIsResponding] = useState(false);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(Boolean(initialChatId));
   const [emergencyBanner, setEmergencyBanner] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  function queueAssistantReply(prompt: string) {
-    const classification = classifyDomain(prompt);
+  useEffect(() => {
+    setChatId(initialChatId);
 
-    if (isBlockedDomainClassification(classification)) {
-      const fallback = buildDomainFallbackResponse(classification);
-
-      setMessages((currentMessages) => [
-        ...currentMessages,
-        {
-          id: crypto.randomUUID(),
-          role: "assistant",
-          content: fallback.content,
-          suggestedPrompts: fallback.suggestedPrompts,
-        },
-      ]);
+    if (!initialChatId) {
+      setMessages([]);
+      setEmergencyBanner(null);
+      setIsLoadingHistory(false);
       return;
     }
 
-    const safetyAssessment = assessMedicalSafety(prompt);
+    let isActive = true;
 
-    if (safetyAssessment.level === "urgent") {
-      const urgentResponse = buildUrgentMedicalResponse();
+    async function loadHistory() {
+      setIsLoadingHistory(true);
+      setErrorMessage(null);
 
-      setEmergencyBanner(urgentResponse);
-      setMessages((currentMessages) => [
-        ...currentMessages,
-        {
-          id: crypto.randomUUID(),
-          role: "assistant",
-          content: urgentResponse,
-          tone: "urgent",
-        },
-      ]);
-      return;
+      try {
+        const response = await fetch(`/api/chats/${initialChatId}`);
+
+        if (!response.ok) {
+          throw new Error("Unable to load chat history.");
+        }
+
+        const payload = (await response.json()) as ChatResponse;
+
+        if (!isActive) {
+          return;
+        }
+
+        const nextMessages = mapPersistedChatMessages(payload.chat);
+        const latestAssistantMessage = [...nextMessages]
+          .reverse()
+          .find((message) => message.role === "assistant");
+
+        setMessages(nextMessages);
+        setEmergencyBanner(
+          isUrgentMessage(latestAssistantMessage) ? URGENT_MEDICAL_RESPONSE : null
+        );
+      } catch {
+        if (!isActive) {
+          return;
+        }
+
+        setErrorMessage("Unable to load this conversation right now.");
+      } finally {
+        if (isActive) {
+          setIsLoadingHistory(false);
+        }
+      }
     }
 
-    setEmergencyBanner(null);
-    setIsResponding(true);
+    void loadHistory();
 
-    window.setTimeout(() => {
-      setMessages((currentMessages) => [
-        ...currentMessages,
-        {
-          id: crypto.randomUUID(),
-          role: "assistant",
-          content: buildAssistantPlaceholder(prompt),
-        },
-      ]);
-      setIsResponding(false);
-    }, ASSISTANT_PLACEHOLDER_DELAY_MS);
+    return () => {
+      isActive = false;
+    };
+  }, [initialChatId]);
+
+  async function ensureChatSession() {
+    if (chatId) {
+      return chatId;
+    }
+
+    const response = await fetch("/api/chats", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({}),
+    });
+
+    if (!response.ok) {
+      throw new Error("Unable to create a chat.");
+    }
+
+    const payload = (await response.json()) as CreateChatResponse;
+
+    setChatId(payload.chat.id);
+    startTransition(() => {
+      router.replace(`/?chatId=${payload.chat.id}`);
+    });
+
+    return payload.chat.id;
   }
 
-  function submitPrompt(prompt: string) {
+  async function submitPrompt(prompt: string) {
     const trimmedPrompt = prompt.trim();
 
-    if (!trimmedPrompt || isResponding) {
+    if (!trimmedPrompt || isResponding || isLoadingHistory) {
       return;
     }
 
+    const optimisticMessageId = crypto.randomUUID();
+
+    setIsResponding(true);
+    setErrorMessage(null);
     setMessages((currentMessages) => [
       ...currentMessages,
       {
-        id: crypto.randomUUID(),
+        id: optimisticMessageId,
         role: "user",
         content: trimmedPrompt,
+        tone: "standard",
       },
     ]);
     setDraft("");
-    queueAssistantReply(trimmedPrompt);
+
+    try {
+      const activeChatId = await ensureChatSession();
+      const response = await fetch(`/api/chats/${activeChatId}/messages`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          content: trimmedPrompt,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Unable to send a message.");
+      }
+
+      const payload = (await response.json()) as PostMessageResponse;
+      const nextMessages = [
+        buildUiMessage(payload.userMessage),
+        ...(payload.assistantMessage
+          ? [
+              buildUiMessage({
+                ...payload.assistantMessage,
+                suggestedPrompts: payload.suggestedPrompts,
+                safetyLevel: payload.safetyLevel,
+              }),
+            ]
+          : []),
+      ];
+
+      setMessages((currentMessages) => [
+        ...currentMessages.filter((message) => message.id !== optimisticMessageId),
+        ...nextMessages,
+      ]);
+      setEmergencyBanner(
+        payload.safetyLevel === "urgent" ? URGENT_MEDICAL_RESPONSE : null
+      );
+    } catch {
+      setMessages((currentMessages) =>
+        currentMessages.filter((message) => message.id !== optimisticMessageId)
+      );
+      setErrorMessage("Unable to send your message right now. Please try again.");
+    } finally {
+      setIsResponding(false);
+    }
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    submitPrompt(draft);
+    void submitPrompt(draft);
   }
 
   return (
@@ -120,9 +253,7 @@ export function ChatShell() {
             </div>
           </div>
 
-          <div className="badge badge-outline badge-info badge-lg">
-            Slice 1
-          </div>
+          <div className="badge badge-outline badge-info badge-lg">Slice 7</div>
         </header>
 
         <div className="grid flex-1 gap-5 lg:grid-cols-[0.78fr_1.22fr]">
@@ -177,20 +308,43 @@ export function ChatShell() {
                 <p className="mt-1 text-base-content/80">{emergencyBanner}</p>
               </div>
             ) : null}
+            {errorMessage ? (
+              <div className="border-b border-warning/30 bg-warning/10 px-5 py-4 text-sm leading-6 text-base-content">
+                {errorMessage}
+              </div>
+            ) : null}
             <div className="border-b border-base-200 px-5 py-4">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <h2 className="text-lg font-semibold">New medical conversation</h2>
+                  <h2 className="text-lg font-semibold">
+                    {chatId ? "Medical conversation" : "New medical conversation"}
+                  </h2>
                   <p className="text-sm text-base-content/65">
-                    Responses are educational and safety-first.
+                    {chatId
+                      ? "Conversation history is loaded from local persistence."
+                      : "Responses are educational and safety-first."}
                   </p>
                 </div>
-                <div className="badge badge-neutral badge-outline">Online UI shell</div>
+                <div className="badge badge-neutral badge-outline">
+                  {chatId ? "Persistent chat" : "Ready to start"}
+                </div>
               </div>
             </div>
 
             <div className="flex-1 overflow-y-auto px-4 py-5 sm:px-5">
-              {messages.length === 0 ? (
+              {isLoadingHistory ? (
+                <div className="flex h-full min-h-[22rem] items-center justify-center">
+                  <div
+                    className="chat-bubble bg-base-200 text-base-content"
+                    role="status"
+                  >
+                    <span className="loading loading-dots loading-md" />
+                    <span className="ml-3 align-middle">
+                      Loading conversation history...
+                    </span>
+                  </div>
+                </div>
+              ) : messages.length === 0 ? (
                 <div className="flex h-full min-h-[22rem] items-center justify-center">
                   <div className="max-w-xl text-center">
                     <p className="text-sm font-medium uppercase tracking-[0.22em] text-info">
@@ -301,7 +455,9 @@ export function ChatShell() {
                   <button
                     type="submit"
                     className="btn btn-info rounded-full px-6"
-                    disabled={draft.trim().length === 0 || isResponding}
+                    disabled={
+                      draft.trim().length === 0 || isResponding || isLoadingHistory
+                    }
                   >
                     Send
                   </button>
