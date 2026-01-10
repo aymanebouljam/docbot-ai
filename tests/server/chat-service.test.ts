@@ -45,6 +45,43 @@ describe("chat service domain gating", () => {
     expect(result?.assistantMessage?.content).toMatch(/many infections/i);
   });
 
+  it("passes prior chat context to the medical reply generator for follow-up questions", async () => {
+    const chat = await createChat();
+
+    await processUserMessage({
+      chatId: chat.id,
+      content: "I have had a fever for two days",
+      generateMedicalReply: vi.fn(async () => "Fever can happen with infections."),
+    });
+
+    const generateMedicalReply = vi.fn(
+      async () => "A dry cough alongside fever may suggest a respiratory infection."
+    );
+
+    await processUserMessage({
+      chatId: chat.id,
+      content: "Now I also have a cough and fever. Could that be an infection?",
+      generateMedicalReply,
+    });
+
+    expect(generateMedicalReply).toHaveBeenCalledOnce();
+    expect(generateMedicalReply).toHaveBeenCalledWith(
+      expect.objectContaining({
+        content: "Now I also have a cough and fever. Could that be an infection?",
+        history: [
+          {
+            role: "user",
+            content: "I have had a fever for two days",
+          },
+          {
+            role: "assistant",
+            content: "Fever can happen with infections.",
+          },
+        ],
+      })
+    );
+  });
+
   it("stores a graceful assistant error when medical generation fails", async () => {
     const chat = await createChat();
     const generateMedicalReply = vi.fn(async () => {
@@ -80,6 +117,30 @@ describe("chat service domain gating", () => {
     expect(result?.safetyLevel).toBe("urgent");
     expect(result?.assistantMessage?.content).toMatch(
       /seek immediate medical care now/i
+    );
+  });
+
+  it("blocks a non-medical follow-up even inside an existing medical chat", async () => {
+    const chat = await createChat();
+
+    await processUserMessage({
+      chatId: chat.id,
+      content: "What causes low iron?",
+      generateMedicalReply: vi.fn(async () => "Low iron is often caused by blood loss."),
+    });
+
+    const generateMedicalReply = vi.fn(async () => "This should not run");
+
+    const result = await processUserMessage({
+      chatId: chat.id,
+      content: "Who won the game yesterday?",
+      generateMedicalReply,
+    });
+
+    expect(generateMedicalReply).not.toHaveBeenCalled();
+    expect(result?.classification).toBe("non_medical");
+    expect(result?.assistantMessage?.content).toMatch(
+      /specialized in medical and health-related questions/i
     );
   });
 });

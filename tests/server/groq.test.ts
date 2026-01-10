@@ -1,4 +1,5 @@
 import {
+  buildMedicalConversationMessages,
   buildMedicalSystemPrompt,
   generateMedicalAnswer,
   GroqError,
@@ -27,6 +28,41 @@ describe("groq integration", () => {
     expect(prompt).toMatch(/medical educational assistant/i);
     expect(prompt).toMatch(/do not claim to diagnose with certainty/i);
     expect(prompt).toMatch(/encourage urgent in-person care/i);
+  });
+
+  it("builds provider messages with prior medical context", () => {
+    const messages = buildMedicalConversationMessages({
+      prompt: "What could it mean if I also have a cough?",
+      history: [
+        {
+          role: "user",
+          content: "I have had a fever for two days",
+        },
+        {
+          role: "assistant",
+          content: "Fever can happen with many infections.",
+        },
+      ],
+    });
+
+    expect(messages).toEqual([
+      {
+        role: "system",
+        content: expect.stringMatching(/medical educational assistant/i),
+      },
+      {
+        role: "user",
+        content: "I have had a fever for two days",
+      },
+      {
+        role: "assistant",
+        content: "Fever can happen with many infections.",
+      },
+      {
+        role: "user",
+        content: "What could it mean if I also have a cough?",
+      },
+    ]);
   });
 
   it("handles a successful Groq response", async () => {
