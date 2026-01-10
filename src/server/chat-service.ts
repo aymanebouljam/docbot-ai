@@ -6,6 +6,7 @@ import {
 import { assessMedicalSafety } from "@/features/medical-safety/checker";
 import { buildUrgentMedicalResponse } from "@/features/medical-safety/response";
 import { MessageRole } from "@/generated/prisma/enums";
+import type { MedicalContextMessage } from "@/server/groq";
 
 import {
   createChat,
@@ -47,6 +48,7 @@ export async function addUserMessageToChat(chatId: string, content: string) {
 type MedicalReplyGenerator = (input: {
   chatId: string;
   content: string;
+  history: MedicalContextMessage[];
 }) => Promise<string>;
 
 export async function processUserMessage(input: {
@@ -98,6 +100,23 @@ export async function processUserMessage(input: {
     };
   }
 
+  const chat = await getChatById(input.chatId);
+
+  if (!chat) {
+    return null;
+  }
+
+  const history: MedicalContextMessage[] = chat.messages
+    .filter((message) => message.id !== userMessage.id)
+    .filter(
+      (message): message is typeof message & { role: "user" | "assistant" } =>
+        message.role === "user" || message.role === "assistant"
+    )
+    .map((message) => ({
+      role: message.role,
+      content: message.content,
+    }));
+
   if (!input.generateMedicalReply) {
     return {
       classification,
@@ -112,6 +131,7 @@ export async function processUserMessage(input: {
     const medicalReply = await input.generateMedicalReply({
       chatId: input.chatId,
       content: trimmedContent,
+      history,
     });
 
     const assistantMessage = await addMessageToChat({

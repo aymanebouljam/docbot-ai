@@ -17,6 +17,11 @@ type GroqMessage = {
   content: string;
 };
 
+export type MedicalContextMessage = {
+  role: "user" | "assistant";
+  content: string;
+};
+
 type GroqChatCompletionResponse = {
   choices?: Array<{
     message?: {
@@ -39,8 +44,30 @@ export function buildMedicalSystemPrompt() {
   return MEDICAL_SYSTEM_PROMPT;
 }
 
+const MAX_CONTEXT_MESSAGES = 8;
+
+export function buildMedicalConversationMessages(input: {
+  prompt: string;
+  history?: MedicalContextMessage[];
+}) {
+  const history = input.history?.slice(-MAX_CONTEXT_MESSAGES) ?? [];
+
+  return [
+    {
+      role: "system",
+      content: buildMedicalSystemPrompt(),
+    },
+    ...history,
+    {
+      role: "user",
+      content: input.prompt,
+    },
+  ] satisfies GroqMessage[];
+}
+
 export async function generateMedicalAnswer(input: {
   prompt: string;
+  history?: MedicalContextMessage[];
   signal?: AbortSignal;
 }) {
   const apiKey = process.env.GROQ_API_KEY;
@@ -58,16 +85,10 @@ export async function generateMedicalAnswer(input: {
     });
   }
 
-  const messages: GroqMessage[] = [
-    {
-      role: "system",
-      content: buildMedicalSystemPrompt(),
-    },
-    {
-      role: "user",
-      content: input.prompt,
-    },
-  ];
+  const messages = buildMedicalConversationMessages({
+    prompt: input.prompt,
+    history: input.history,
+  });
 
   try {
     const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
