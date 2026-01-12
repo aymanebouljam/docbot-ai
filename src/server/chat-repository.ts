@@ -3,6 +3,7 @@ import { MessageRole } from "@/generated/prisma/enums";
 import { getPrismaClient } from "@/lib/prisma";
 
 export type ChatWithMessages = Chat & { messages: Message[] };
+export type ChatListItem = Pick<Chat, "id" | "title" | "updatedAt" | "createdAt">;
 
 export type CreateChatInput = {
   title?: string;
@@ -67,6 +68,32 @@ export async function getChatById(
       messages: {
         orderBy: [{ createdAt: "asc" }, { id: "asc" }],
       },
+    },
+  });
+}
+
+export async function listChats(): Promise<ChatListItem[]> {
+  const prisma = getPrismaClient();
+
+  return prisma.chat.findMany({
+    orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }, { id: "desc" }],
+    select: {
+      id: true,
+      title: true,
+      updatedAt: true,
+      createdAt: true,
+    },
+  });
+}
+
+export async function updateChatTitle(input: { chatId: string; title: string }) {
+  const prisma = getPrismaClient();
+
+  return prisma.chat.update({
+    where: { id: input.chatId },
+    data: {
+      title: input.title,
+      updatedAt: new Date(),
     },
   });
 }

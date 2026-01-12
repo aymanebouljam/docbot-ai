@@ -7,12 +7,16 @@ import { assessMedicalSafety } from "@/features/medical-safety/checker";
 import { buildUrgentMedicalResponse } from "@/features/medical-safety/response";
 import { MessageRole } from "@/generated/prisma/enums";
 import type { MedicalContextMessage } from "@/server/groq";
+import { buildChatTitleFromMessage } from "@/server/chat-title";
 
 import {
   createChat,
   getChatById,
+  listChats,
   saveMessage,
   type ChatWithMessages,
+  type ChatListItem,
+  updateChatTitle,
 } from "@/server/chat-repository";
 
 export async function createChatSession(title?: string) {
@@ -63,6 +67,23 @@ export async function processUserMessage(input: {
     return null;
   }
 
+  const chatAfterUserMessage = await getChatById(input.chatId);
+
+  if (!chatAfterUserMessage) {
+    return null;
+  }
+
+  const userMessages = chatAfterUserMessage.messages.filter(
+    (message) => message.role === "user"
+  );
+
+  if (!chatAfterUserMessage.title && userMessages.length === 1) {
+    await updateChatTitle({
+      chatId: input.chatId,
+      title: buildChatTitleFromMessage(trimmedContent),
+    });
+  }
+
   const classification = classifyDomain(trimmedContent);
 
   if (isBlockedDomainClassification(classification)) {
@@ -100,13 +121,7 @@ export async function processUserMessage(input: {
     };
   }
 
-  const chat = await getChatById(input.chatId);
-
-  if (!chat) {
-    return null;
-  }
-
-  const history: MedicalContextMessage[] = chat.messages
+  const history: MedicalContextMessage[] = chatAfterUserMessage.messages
     .filter((message) => message.id !== userMessage.id)
     .filter(
       (message): message is typeof message & { role: "user" | "assistant" } =>
@@ -167,4 +182,8 @@ export async function processUserMessage(input: {
 
 export async function loadChat(chatId: string): Promise<ChatWithMessages | null> {
   return getChatById(chatId);
+}
+
+export async function loadChatList(): Promise<ChatListItem[]> {
+  return listChats();
 }
