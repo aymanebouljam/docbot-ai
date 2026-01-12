@@ -8,6 +8,7 @@ import { buildUrgentMedicalResponse } from "@/features/medical-safety/response";
 import { MessageRole } from "@/generated/prisma/enums";
 import type { MedicalContextMessage } from "@/server/groq";
 import { buildChatTitleFromMessage } from "@/server/chat-title";
+import { normalizeStoredContent } from "@/server/validation";
 
 import {
   createChat,
@@ -20,7 +21,9 @@ import {
 } from "@/server/chat-repository";
 
 export async function createChatSession(title?: string) {
-  return createChat({ title });
+  return createChat({
+    title: title ? normalizeStoredContent(title) : undefined,
+  });
 }
 
 export async function addMessageToChat(input: {
@@ -29,15 +32,16 @@ export async function addMessageToChat(input: {
   role: MessageRole;
 }) {
   const trimmedContent = input.content.trim();
+  const normalizedContent = normalizeStoredContent(trimmedContent);
 
-  if (!trimmedContent) {
+  if (!normalizedContent) {
     throw new Error("Message content is required.");
   }
 
   return saveMessage({
     chatId: input.chatId,
     role: input.role,
-    content: trimmedContent,
+    content: normalizedContent,
   });
 }
 
