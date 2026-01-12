@@ -1,15 +1,21 @@
 import { createChatSession, loadChatList } from "@/server/chat-service";
-
-type CreateChatRequestBody = {
-  title?: unknown;
-};
+import {
+  createChatRequestSchema,
+  parseRequestBody,
+} from "@/server/validation";
 
 export async function POST(request: Request) {
-  const body = (await request.json().catch(() => ({}))) as CreateChatRequestBody;
+  const body = await request.json().catch(() => ({}));
+  const parsedBody = parseRequestBody(createChatRequestSchema, body);
 
-  const chat = await createChatSession(
-    typeof body.title === "string" ? body.title.trim() : undefined
-  );
+  if (!parsedBody.success) {
+    return Response.json(
+      { error: "Invalid chat payload.", details: parsedBody.error.flatten() },
+      { status: 400 }
+    );
+  }
+
+  const chat = await createChatSession(parsedBody.data.title);
 
   return Response.json({ chat }, { status: 201 });
 }
