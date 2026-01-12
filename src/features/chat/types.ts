@@ -17,3 +17,10 @@ export type PersistedChat = {
     content: string;
   }>;
 };
+
+export type ChatListEntry = {
+  id: string;
+  title: string | null;
+  updatedAt: string;
+  createdAt: string;
+};

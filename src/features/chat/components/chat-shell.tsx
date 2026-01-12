@@ -8,7 +8,11 @@ import {
   SUGGESTED_MEDICAL_PROMPTS,
 } from "@/features/chat/constants";
 import { mapPersistedChatMessages } from "@/features/chat/message-mappers";
-import type { ChatMessage, PersistedChat } from "@/features/chat/types";
+import type {
+  ChatListEntry,
+  ChatMessage,
+  PersistedChat,
+} from "@/features/chat/types";
 import { URGENT_MEDICAL_RESPONSE } from "@/features/medical-safety/response";
 
 type ChatShellProps = {
@@ -23,6 +27,10 @@ type CreateChatResponse = {
 
 type ChatResponse = {
   chat: PersistedChat;
+};
+
+type ChatListResponse = {
+  chats: ChatListEntry[];
 };
 
 type PostMessageResponse = {
@@ -72,10 +80,37 @@ export function ChatShell({ initialChatId = null }: ChatShellProps) {
   const [draft, setDraft] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [chatId, setChatId] = useState<string | null>(initialChatId);
+  const [chatList, setChatList] = useState<ChatListEntry[]>([]);
   const [isResponding, setIsResponding] = useState(false);
   const [isLoadingHistory, setIsLoadingHistory] = useState(Boolean(initialChatId));
+  const [isLoadingChatList, setIsLoadingChatList] = useState(true);
   const [emergencyBanner, setEmergencyBanner] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  async function refreshChatList() {
+    setIsLoadingChatList(true);
+
+    try {
+      const response = await fetch("/api/chats");
+
+      if (!response.ok) {
+        throw new Error("Unable to load chat list.");
+      }
+
+      const payload = (await response.json()) as ChatListResponse;
+      setChatList(payload.chats);
+    } catch {
+      setErrorMessage((currentError) => {
+        return currentError ?? "Unable to load your conversations right now.";
+      });
+    } finally {
+      setIsLoadingChatList(false);
+    }
+  }
+
+  useEffect(() => {
+    void refreshChatList();
+  }, []);
 
   useEffect(() => {
     setChatId(initialChatId);
@@ -155,11 +190,35 @@ export function ChatShell({ initialChatId = null }: ChatShellProps) {
     const payload = (await response.json()) as CreateChatResponse;
 
     setChatId(payload.chat.id);
+    await refreshChatList();
     startTransition(() => {
-      router.replace(`/?chatId=${payload.chat.id}`);
+      router.replace(`/?chatId=${payload.chat.id}`, { scroll: false });
     });
 
     return payload.chat.id;
+  }
+
+  function handleStartNewChat() {
+    setChatId(null);
+    setMessages([]);
+    setDraft("");
+    setEmergencyBanner(null);
+    setErrorMessage(null);
+    setIsLoadingHistory(false);
+    startTransition(() => {
+      router.replace("/", { scroll: false });
+    });
+  }
+
+  function handleSelectChat(nextChatId: string) {
+    if (nextChatId === chatId) {
+      return;
+    }
+
+    setErrorMessage(null);
+    startTransition(() => {
+      router.replace(`/?chatId=${nextChatId}`, { scroll: false });
+    });
   }
 
   async function submitPrompt(prompt: string) {
@@ -221,6 +280,7 @@ export function ChatShell({ initialChatId = null }: ChatShellProps) {
       setEmergencyBanner(
         payload.safetyLevel === "urgent" ? URGENT_MEDICAL_RESPONSE : null
       );
+      await refreshChatList();
     } catch {
       setMessages((currentMessages) =>
         currentMessages.filter((message) => message.id !== optimisticMessageId)
@@ -253,19 +313,59 @@ export function ChatShell({ initialChatId = null }: ChatShellProps) {
             </div>
           </div>
 
-          <div className="badge badge-outline badge-info badge-lg">Slice 7</div>
+          <div className="badge badge-outline badge-info badge-lg">Slice 8</div>
         </header>
 
         <div className="grid flex-1 gap-5 lg:grid-cols-[0.78fr_1.22fr]">
           <aside className="rounded-[2rem] border border-base-300 bg-base-100/95 p-5 shadow-lg">
-            <div className="mb-5">
-              <p className="text-sm font-medium text-info">Guided medical scope</p>
-              <h2 className="mt-2 text-2xl font-semibold">
-                Focused on health and medicine
-              </h2>
+            <div className="mb-5 flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-medium text-info">Conversations</p>
+                <h2 className="mt-2 text-2xl font-semibold">Recent medical chats</h2>
+              </div>
+              <button
+                type="button"
+                className="btn btn-info btn-sm rounded-full"
+                onClick={handleStartNewChat}
+              >
+                New chat
+              </button>
             </div>
 
             <div className="space-y-4">
+              <div className="rounded-[1.5rem] border border-base-200 bg-base-100 p-3">
+                {isLoadingChatList ? (
+                  <p className="text-sm text-base-content/60">Loading conversations...</p>
+                ) : chatList.length === 0 ? (
+                  <p className="text-sm leading-6 text-base-content/60">
+                    No saved chats yet. Start with a medical question and your
+                    conversation will appear here.
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {chatList.map((chat) => (
+                      <button
+                        key={chat.id}
+                        type="button"
+                        className={`w-full rounded-[1.25rem] border px-4 py-3 text-left transition ${
+                          chat.id === chatId
+                            ? "border-info/40 bg-info/10"
+                            : "border-base-200 bg-base-100 hover:border-info/25 hover:bg-base-200/50"
+                        }`}
+                        onClick={() => handleSelectChat(chat.id)}
+                      >
+                        <p className="text-sm font-medium leading-6">
+                          {chat.title ?? "New medical chat"}
+                        </p>
+                        <p className="mt-1 text-xs uppercase tracking-[0.18em] text-base-content/45">
+                          {chat.id === chatId ? "Current chat" : "Open chat"}
+                        </p>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <div className="rounded-[1.5rem] border border-warning/30 bg-warning/10 p-4">
                 <p className="text-sm font-medium">Important disclaimer</p>
                 <p className="mt-2 text-sm leading-6 text-base-content/75">
@@ -274,7 +374,7 @@ export function ChatShell({ initialChatId = null }: ChatShellProps) {
               </div>
 
               <div className="rounded-[1.5rem] border border-base-200 bg-base-200/60 p-4">
-                <p className="text-sm font-medium">Example medical topics</p>
+                <p className="text-sm font-medium">Supported medical topics</p>
                 <ul className="mt-3 space-y-2 text-sm leading-6 text-base-content/75">
                   <li>Symptoms and possible causes</li>
                   <li>Medication side effects and precautions</li>

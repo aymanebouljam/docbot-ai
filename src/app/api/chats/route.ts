@@ -1,4 +1,4 @@
-import { createChatSession } from "@/server/chat-service";
+import { createChatSession, loadChatList } from "@/server/chat-service";
 
 type CreateChatRequestBody = {
   title?: unknown;
@@ -12,4 +12,10 @@ export async function POST(request: Request) {
   );
 
   return Response.json({ chat }, { status: 201 });
+}
+
+export async function GET() {
+  const chats = await loadChatList();
+
+  return Response.json({ chats });
 }
