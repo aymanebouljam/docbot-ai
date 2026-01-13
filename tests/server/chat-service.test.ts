@@ -161,4 +161,16 @@ describe("chat service domain gating", () => {
       "What causes persistent dizziness when I stand up"
     );
   });
+
+  it("normalizes stored user content before persistence", async () => {
+    const chat = await createChat();
+
+    const result = await processUserMessage({
+      chatId: chat.id,
+      content: "  What   causes   a fever?  ",
+      generateMedicalReply: vi.fn(async () => "Many infections can cause fever."),
+    });
+
+    expect(result?.userMessage.content).toBe("What causes a fever?");
+  });
 });
