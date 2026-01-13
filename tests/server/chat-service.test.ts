@@ -1,5 +1,5 @@
 import { processUserMessage } from "@/server/chat-service";
-import { createChat } from "@/server/chat-repository";
+import { createChat, getChatById } from "@/server/chat-repository";
 import { disconnectDatabase, resetDatabase } from "../support/database";
 
 describe("chat service domain gating", () => {
@@ -141,6 +141,24 @@ describe("chat service domain gating", () => {
     expect(result?.classification).toBe("non_medical");
     expect(result?.assistantMessage?.content).toMatch(
       /specialized in medical and health-related questions/i
+    );
+  });
+
+  it("generates and saves a title from the first user message", async () => {
+    const chat = await createChat();
+
+    await processUserMessage({
+      chatId: chat.id,
+      content: "What causes persistent dizziness when I stand up?",
+      generateMedicalReply: vi.fn(
+        async () => "It can happen with dehydration or low blood pressure."
+      ),
+    });
+
+    const persistedChat = await getChatById(chat.id);
+
+    expect(persistedChat?.title).toBe(
+      "What causes persistent dizziness when I stand up"
     );
   });
 });
