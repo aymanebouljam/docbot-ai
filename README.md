@@ -51,6 +51,12 @@ DocBot AI is a medical-only chatbot built with Next.js, TypeScript, Tailwind CSS
 - Updated message orchestration to pass prior user and assistant turns into the Groq request for medical follow-up context.
 - Replaced the local-only chat shell behavior with real chat creation, history loading, and persisted message posting through the app routes.
 
+### Slice 8
+
+- Added a conversation sidebar with a new-chat action and persisted chat list loading from the server.
+- Added safe auto-generated chat titles based on the first user message so saved conversations are readable in the sidebar.
+- Updated the chat shell to switch between saved chats and return to an empty conversation state without leaving the medical-only UX.
+
 ## Getting Started
 
 1. Install dependencies with `pnpm install`.
