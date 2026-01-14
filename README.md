@@ -57,6 +57,12 @@ DocBot AI is a medical-only chatbot built with Next.js, TypeScript, Tailwind CSS
 - Added safe auto-generated chat titles based on the first user message so saved conversations are readable in the sidebar.
 - Updated the chat shell to switch between saved chats and return to an empty conversation state without leaving the medical-only UX.
 
+### Slice 9
+
+- Added Zod-based request validation for chat creation and message submission, including prompt and title length limits.
+- Added normalization for stored content so persisted messages and titles are trimmed and whitespace-cleaned before saving.
+- Added a basic in-memory rate limiter for rapid message submissions with clean `429` handling and retry metadata.
+
 ## Getting Started
 
 1. Install dependencies with `pnpm install`.
