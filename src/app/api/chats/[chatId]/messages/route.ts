@@ -1,28 +1,46 @@
 import { processUserMessage } from "@/server/chat-service";
 import { generateMedicalAnswer } from "@/server/groq";
+import { checkRateLimit } from "@/server/rate-limit";
+import {
+  createMessageRequestSchema,
+  parseRequestBody,
+} from "@/server/validation";
 
 type ChatMessagesRouteContext = {
   params: Promise<{ chatId: string }>;
 };
 
-type CreateMessageRequestBody = {
-  content?: unknown;
-};
-
 export async function POST(request: Request, context: ChatMessagesRouteContext) {
   const { chatId } = await context.params;
-  const body = (await request.json().catch(() => ({}))) as CreateMessageRequestBody;
+  const rateLimit = checkRateLimit({ request, scope: `chat-message:${chatId}` });
 
-  if (typeof body.content !== "string" || body.content.trim().length === 0) {
+  if (!rateLimit.allowed) {
     return Response.json(
-      { error: "Message content must be a non-empty string." },
+      {
+        error: "Too many messages sent too quickly. Please wait a moment and try again.",
+      },
+      {
+        status: 429,
+        headers: {
+          "Retry-After": String(rateLimit.retryAfterSeconds),
+        },
+      }
+    );
+  }
+
+  const body = await request.json().catch(() => ({}));
+  const parsedBody = parseRequestBody(createMessageRequestSchema, body);
+
+  if (!parsedBody.success) {
+    return Response.json(
+      { error: "Invalid message payload.", details: parsedBody.error.flatten() },
       { status: 400 }
     );
   }
 
   const result = await processUserMessage({
     chatId,
-    content: body.content,
+    content: parsedBody.data.content,
     generateMedicalReply: async ({ content, history }) =>
       generateMedicalAnswer({
         prompt: content,
