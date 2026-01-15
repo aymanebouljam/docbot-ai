@@ -1,6 +1,8 @@
 import { POST } from "@/app/api/chats/[chatId]/messages/route";
+import { resetRateLimitStore } from "@/server/rate-limit";
 import { getChatById } from "@/server/chat-repository";
 import { createChatSession } from "@/server/chat-service";
+import { MAX_MESSAGE_LENGTH } from "@/server/validation";
 import { disconnectDatabase, resetDatabase } from "../support/database";
 
 describe("chat message route", () => {
@@ -8,6 +10,7 @@ describe("chat message route", () => {
 
   beforeEach(async () => {
     await resetDatabase();
+    resetRateLimitStore();
     global.fetch = vi.fn().mockResolvedValue(
       new Response(
         JSON.stringify({
@@ -159,5 +162,90 @@ describe("chat message route", () => {
       /seek immediate medical care now/i
     );
     expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it("rejects invalid message payloads with a 400 status", async () => {
+    const chat = await createChatSession();
+
+    const response = await POST(
+      new Request("http://localhost/api/chats/messages", {
+        method: "POST",
+        body: JSON.stringify({
+          content: "",
+        }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }),
+      {
+        params: Promise.resolve({ chatId: chat.id }),
+      }
+    );
+
+    expect(response.status).toBe(400);
+  });
+
+  it("rejects overly long message payloads with a 400 status", async () => {
+    const chat = await createChatSession();
+
+    const response = await POST(
+      new Request("http://localhost/api/chats/messages", {
+        method: "POST",
+        body: JSON.stringify({
+          content: "a".repeat(MAX_MESSAGE_LENGTH + 1),
+        }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }),
+      {
+        params: Promise.resolve({ chatId: chat.id }),
+      }
+    );
+
+    expect(response.status).toBe(400);
+  });
+
+  it("rate limits repeated rapid submissions", async () => {
+    const chat = await createChatSession();
+
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const response = await POST(
+        new Request("http://localhost/api/chats/messages", {
+          method: "POST",
+          body: JSON.stringify({
+            content: `What does a fever mean? ${attempt}`,
+          }),
+          headers: {
+            "Content-Type": "application/json",
+            "x-forwarded-for": "203.0.113.10",
+          },
+        }),
+        {
+          params: Promise.resolve({ chatId: chat.id }),
+        }
+      );
+
+      expect(response.status).toBe(201);
+    }
+
+    const limitedResponse = await POST(
+      new Request("http://localhost/api/chats/messages", {
+        method: "POST",
+        body: JSON.stringify({
+          content: "What about chills too?",
+        }),
+        headers: {
+          "Content-Type": "application/json",
+          "x-forwarded-for": "203.0.113.10",
+        },
+      }),
+      {
+        params: Promise.resolve({ chatId: chat.id }),
+      }
+    );
+
+    expect(limitedResponse.status).toBe(429);
+    expect(limitedResponse.headers.get("Retry-After")).toBeTruthy();
   });
 });
