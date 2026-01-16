@@ -63,12 +63,35 @@ DocBot AI is a medical-only chatbot built with Next.js, TypeScript, Tailwind CSS
 - Added normalization for stored content so persisted messages and titles are trimmed and whitespace-cleaned before saving.
 - Added a basic in-memory rate limiter for rapid message submissions with clean `429` handling and retry metadata.
 
+### Slice 10
+
+- Added keyboard-friendly composer behavior so Enter sends and Shift+Enter keeps multiline input.
+- Added accessibility refinements including landmark semantics, active-conversation announcement, composer guidance, and alert roles for urgent and failure states.
+- Added a root app error boundary and expanded the README with fuller setup, testing, and deployment notes for fresh developers.
+
 ## Getting Started
 
 1. Install dependencies with `pnpm install`.
 2. Copy `.env.example` to `.env`.
-3. Generate Prisma client with `pnpm prisma:generate`.
-4. Start the app with `pnpm dev`.
+3. Set `GROQ_API_KEY` and optionally `GROQ_MODEL`.
+4. Generate Prisma client with `pnpm prisma:generate`.
+5. Run the local SQLite migration with `pnpm prisma:migrate`.
+6. Start the app with `pnpm dev`.
+7. Open `http://localhost:3000`.
+
+## Testing
+
+- Run unit, component, and integration tests with `pnpm test`.
+- Run lint checks with `pnpm lint`.
+- Run a production build check with `pnpm build`.
+- Use `pnpm test && pnpm lint && pnpm build` as the final local QA gate.
+
+## Deployment Notes
+
+- Keep Groq credentials server-side only. Do not expose `GROQ_API_KEY` to the client.
+- This project uses SQLite for local development. For production, use durable storage and ensure Prisma migrations are applied before serving traffic.
+- The current rate limiter is in-memory and process-local, which is fine for local and simple single-instance deployments but should be replaced with shared storage for multi-instance production use.
+- Health, safety, and medical-domain guardrails are enforced in app code before the Groq call. Preserve that order when extending the system.
 
 ## Scripts
 
