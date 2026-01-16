@@ -109,6 +109,35 @@ describe("chat shell", () => {
     );
   });
 
+  it("submits from Enter and keeps Shift+Enter for multiline input", async () => {
+    const user = userEvent.setup();
+
+    render(<ChatShell />);
+
+    const textarea = screen.getByLabelText(/your medical question/i);
+
+    await user.type(textarea, "What causes low iron?");
+    fireEvent.keyDown(textarea, {
+      key: "Enter",
+    });
+
+    await waitFor(() =>
+      expect(
+        screen.getByText(/low iron is commonly linked to blood loss/i)
+      ).toBeInTheDocument()
+    );
+
+    fireEvent.change(textarea, {
+      target: { value: "Line one" },
+    });
+    fireEvent.keyDown(textarea, {
+      key: "Enter",
+      shiftKey: true,
+    });
+
+    expect(screen.getByDisplayValue("Line one")).toBeInTheDocument();
+  });
+
   it("shows a loading indicator while awaiting an assistant reply", async () => {
     let resolveMessages: ((value: Response) => void) | null = null;
 
@@ -318,6 +347,54 @@ describe("chat shell", () => {
     );
 
     expect(replace).toHaveBeenCalledWith("/?chatId=chat-11", { scroll: false });
+  });
+
+  it("marks the active conversation for assistive technology", async () => {
+    global.fetch = vi.fn(async (input) => {
+      const url = typeof input === "string" ? input : input.toString();
+
+      if (url === "/api/chats") {
+        return new Response(
+          JSON.stringify({
+            chats: [
+              {
+                id: "chat-7",
+                title: "ALT follow-up",
+                updatedAt: "2026-03-30T00:00:00.000Z",
+                createdAt: "2026-03-30T00:00:00.000Z",
+              },
+            ],
+          }),
+          { status: 200 }
+        );
+      }
+
+      if (url === "/api/chats/chat-7") {
+        return new Response(
+          JSON.stringify({
+            chat: {
+              id: "chat-7",
+              title: "ALT follow-up",
+              messages: [],
+            },
+          }),
+          { status: 200 }
+        );
+      }
+
+      return new Response(JSON.stringify({ error: "Unexpected request" }), {
+        status: 404,
+      });
+    });
+
+    render(<ChatShell initialChatId="chat-7" />);
+
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /alt follow-up/i })).toHaveAttribute(
+        "aria-current",
+        "page"
+      )
+    );
   });
 
   it("starts a new chat from the sidebar action", async () => {
