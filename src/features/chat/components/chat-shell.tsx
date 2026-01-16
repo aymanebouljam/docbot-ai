@@ -1,6 +1,12 @@
 "use client";
 
-import { FormEvent, startTransition, useEffect, useState } from "react";
+import {
+  FormEvent,
+  KeyboardEvent,
+  startTransition,
+  useEffect,
+  useState,
+} from "react";
 import { useRouter } from "next/navigation";
 
 import {
@@ -296,6 +302,22 @@ export function ChatShell({ initialChatId = null }: ChatShellProps) {
     void submitPrompt(draft);
   }
 
+  function handleComposerKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
+    if (
+      event.key !== "Enter" ||
+      event.shiftKey ||
+      event.nativeEvent.isComposing ||
+      event.altKey ||
+      event.ctrlKey ||
+      event.metaKey
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+    void submitPrompt(draft);
+  }
+
   return (
     <div className="grid min-h-screen bg-[radial-gradient(circle_at_top,_rgba(14,165,233,0.16),_transparent_35%),linear-gradient(180deg,_#f8fafc_0%,_#e0f2fe_100%)]">
       <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 py-6 sm:px-6 lg:px-8">
@@ -317,7 +339,10 @@ export function ChatShell({ initialChatId = null }: ChatShellProps) {
         </header>
 
         <div className="grid flex-1 gap-5 lg:grid-cols-[0.78fr_1.22fr]">
-          <aside className="rounded-[2rem] border border-base-300 bg-base-100/95 p-5 shadow-lg">
+          <aside
+            className="rounded-[2rem] border border-base-300 bg-base-100/95 p-5 shadow-lg"
+            aria-label="Chat sidebar"
+          >
             <div className="mb-5 flex items-start justify-between gap-3">
               <div>
                 <p className="text-sm font-medium text-info">Conversations</p>
@@ -342,11 +367,12 @@ export function ChatShell({ initialChatId = null }: ChatShellProps) {
                     conversation will appear here.
                   </p>
                 ) : (
-                  <div className="space-y-2">
+                  <nav className="space-y-2" aria-label="Saved conversations">
                     {chatList.map((chat) => (
                       <button
                         key={chat.id}
                         type="button"
+                        aria-current={chat.id === chatId ? "page" : undefined}
                         className={`w-full rounded-[1.25rem] border px-4 py-3 text-left transition ${
                           chat.id === chatId
                             ? "border-info/40 bg-info/10"
@@ -362,7 +388,7 @@ export function ChatShell({ initialChatId = null }: ChatShellProps) {
                         </p>
                       </button>
                     ))}
-                  </div>
+                  </nav>
                 )}
               </div>
 
@@ -401,15 +427,24 @@ export function ChatShell({ initialChatId = null }: ChatShellProps) {
             </div>
           </aside>
 
-          <section className="flex min-h-[70vh] flex-col rounded-[2rem] border border-base-300 bg-base-100 shadow-xl shadow-sky-100/80">
+          <main
+            className="flex min-h-[70vh] flex-col rounded-[2rem] border border-base-300 bg-base-100 shadow-xl shadow-sky-100/80"
+            aria-busy={isLoadingHistory || isResponding}
+          >
             {emergencyBanner ? (
-              <div className="border-b border-error/30 bg-error/10 px-5 py-4 text-sm leading-6 text-error-content">
+              <div
+                className="border-b border-error/30 bg-error/10 px-5 py-4 text-sm leading-6 text-error-content"
+                role="alert"
+              >
                 <p className="font-semibold text-error">Urgent safety guidance</p>
                 <p className="mt-1 text-base-content/80">{emergencyBanner}</p>
               </div>
             ) : null}
             {errorMessage ? (
-              <div className="border-b border-warning/30 bg-warning/10 px-5 py-4 text-sm leading-6 text-base-content">
+              <div
+                className="border-b border-warning/30 bg-warning/10 px-5 py-4 text-sm leading-6 text-base-content"
+                role="alert"
+              >
                 {errorMessage}
               </div>
             ) : null}
@@ -539,16 +574,24 @@ export function ChatShell({ initialChatId = null }: ChatShellProps) {
               <label className="mb-3 block text-sm font-medium" htmlFor="chat-input">
                 Your medical question
               </label>
+              <p id="chat-composer-hint" className="sr-only">
+                Press Enter to send. Press Shift plus Enter to add a new line.
+              </p>
               <div className="rounded-[1.7rem] border border-base-300 bg-base-100 p-3 shadow-sm">
                 <textarea
                   id="chat-input"
                   className="textarea h-32 w-full resize-none border-0 bg-transparent px-2 text-base leading-7 outline-none focus:outline-none"
                   placeholder="Describe your symptom, lab result, medication question, or health concern..."
                   value={draft}
+                  aria-describedby="chat-composer-hint chat-safety-hint"
                   onChange={(event) => setDraft(event.target.value)}
+                  onKeyDown={handleComposerKeyDown}
                 />
                 <div className="mt-3 flex items-center justify-between gap-3 border-t border-base-200 pt-3">
-                  <p className="max-w-md text-xs leading-5 text-base-content/60">
+                  <p
+                    id="chat-safety-hint"
+                    className="max-w-md text-xs leading-5 text-base-content/60"
+                  >
                     If symptoms are severe, worsening, or involve trouble breathing,
                     chest pain, confusion, or loss of consciousness, seek urgent care.
                   </p>
@@ -564,7 +607,7 @@ export function ChatShell({ initialChatId = null }: ChatShellProps) {
                 </div>
               </div>
             </form>
-          </section>
+          </main>
         </div>
       </div>
     </div>
