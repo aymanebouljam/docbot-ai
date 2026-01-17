@@ -82,6 +82,22 @@ describe("chat shell", () => {
     expect(
       screen.getByLabelText(/your medical question/i)
     ).toBeInTheDocument();
+    expect(screen.getByText(/medical workspace/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/search chats/i)).toBeInTheDocument();
+  });
+
+  it("collapses the sidebar into an icon rail", async () => {
+    render(<ChatShell />);
+
+    fireEvent.click(screen.getByRole("button", { name: /collapse sidebar/i }));
+
+    expect(
+      screen.queryByPlaceholderText(/search chats/i)
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/medical workspace/i)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /expand sidebar/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /new chat/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /search chats/i })).toBeInTheDocument();
   });
 
   it("disables the send button when the textarea is empty", () => {
@@ -395,6 +411,67 @@ describe("chat shell", () => {
         "page"
       )
     );
+  });
+
+  it("filters chats from the search field", async () => {
+    global.fetch = vi.fn(async (input) => {
+      const url = typeof input === "string" ? input : input.toString();
+
+      if (url === "/api/chats") {
+        return new Response(
+          JSON.stringify({
+            chats: [
+              {
+                id: "chat-10",
+                title: "What causes anemia",
+                updatedAt: "2026-03-30T00:00:00.000Z",
+                createdAt: "2026-03-30T00:00:00.000Z",
+              },
+              {
+                id: "chat-11",
+                title: "High blood pressure follow-up",
+                updatedAt: "2026-03-29T00:00:00.000Z",
+                createdAt: "2026-03-29T00:00:00.000Z",
+              },
+            ],
+          }),
+          { status: 200 }
+        );
+      }
+
+      return new Response(JSON.stringify({ error: "Unexpected request" }), {
+        status: 404,
+      });
+    });
+
+    render(<ChatShell />);
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: /what causes anemia/i })
+      ).toBeInTheDocument()
+    );
+
+    fireEvent.change(screen.getByPlaceholderText(/search chats/i), {
+      target: { value: "pressure" },
+    });
+
+    expect(
+      screen.queryByRole("button", { name: /what causes anemia/i })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /high blood pressure follow-up/i })
+    ).toBeInTheDocument();
+  });
+
+  it("shows the profile menu from the settings button", async () => {
+    render(<ChatShell />);
+
+    fireEvent.click(screen.getByRole("button", { name: /demo user/i }));
+
+    expect(screen.getByRole("menu", { name: /profile menu/i })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: /profile/i })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: /logout/i })).toBeInTheDocument();
   });
 
   it("starts a new chat from the sidebar action", async () => {
