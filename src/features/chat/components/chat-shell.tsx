@@ -3,16 +3,15 @@
 import {
   FormEvent,
   KeyboardEvent,
+  useDeferredValue,
   startTransition,
   useEffect,
   useState,
 } from "react";
+import { Stethoscope } from "lucide-react";
 import { useRouter } from "next/navigation";
 
-import {
-  CHAT_DISCLAIMER,
-  SUGGESTED_MEDICAL_PROMPTS,
-} from "@/features/chat/constants";
+import { SUGGESTED_MEDICAL_PROMPTS } from "@/features/chat/constants";
 import { mapPersistedChatMessages } from "@/features/chat/message-mappers";
 import type {
   ChatListEntry,
@@ -87,11 +86,25 @@ export function ChatShell({ initialChatId = null }: ChatShellProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [chatId, setChatId] = useState<string | null>(initialChatId);
   const [chatList, setChatList] = useState<ChatListEntry[]>([]);
+  const [chatSearch, setChatSearch] = useState("");
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isResponding, setIsResponding] = useState(false);
   const [isLoadingHistory, setIsLoadingHistory] = useState(Boolean(initialChatId));
   const [isLoadingChatList, setIsLoadingChatList] = useState(true);
   const [emergencyBanner, setEmergencyBanner] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const deferredChatSearch = useDeferredValue(chatSearch);
+  const normalizedChatSearch = deferredChatSearch.trim().toLowerCase();
+  const filteredChats = chatList.filter((chat) => {
+    if (!normalizedChatSearch) {
+      return true;
+    }
+
+    return (chat.title ?? "New medical chat")
+      .toLowerCase()
+      .includes(normalizedChatSearch);
+  });
 
   async function refreshChatList() {
     setIsLoadingChatList(true);
@@ -208,6 +221,8 @@ export function ChatShell({ initialChatId = null }: ChatShellProps) {
     setChatId(null);
     setMessages([]);
     setDraft("");
+    setChatSearch("");
+    setIsProfileMenuOpen(false);
     setEmergencyBanner(null);
     setErrorMessage(null);
     setIsLoadingHistory(false);
@@ -221,10 +236,16 @@ export function ChatShell({ initialChatId = null }: ChatShellProps) {
       return;
     }
 
+    setIsProfileMenuOpen(false);
     setErrorMessage(null);
     startTransition(() => {
       router.replace(`/?chatId=${nextChatId}`, { scroll: false });
     });
+  }
+
+  function toggleSidebar() {
+    setIsProfileMenuOpen(false);
+    setIsSidebarCollapsed((currentState) => !currentState);
   }
 
   async function submitPrompt(prompt: string) {
@@ -320,115 +341,331 @@ export function ChatShell({ initialChatId = null }: ChatShellProps) {
 
   return (
     <div className="grid min-h-screen bg-[radial-gradient(circle_at_top,_rgba(14,165,233,0.16),_transparent_35%),linear-gradient(180deg,_#f8fafc_0%,_#e0f2fe_100%)]">
-      <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 py-6 sm:px-6 lg:px-8">
-        <header className="mb-5 flex flex-col gap-4 rounded-[2rem] border border-info/20 bg-base-100/85 px-5 py-5 shadow-sm backdrop-blur md:flex-row md:items-center md:justify-between">
-          <div className="space-y-2">
-            <p className="text-sm font-medium uppercase tracking-[0.28em] text-info">
-              DocBot AI
-            </p>
-            <div>
-              <h1 className="text-2xl font-semibold">Medical-only chat assistant</h1>
-              <p className="mt-1 max-w-2xl text-sm leading-6 text-base-content/70">
-                Ask about symptoms, medications, conditions, prevention, or lab
-                results in a calm, ChatGPT-style workspace.
-              </p>
-            </div>
-          </div>
-
-          <div className="badge badge-outline badge-info badge-lg">Slice 8</div>
-        </header>
-
-        <div className="grid flex-1 gap-5 lg:grid-cols-[0.78fr_1.22fr]">
+      <div className="flex min-h-screen w-full flex-col">
+        <div
+          className={`grid min-h-screen flex-1 ${
+            isSidebarCollapsed
+              ? "lg:grid-cols-[88px_minmax(0,1fr)]"
+              : "lg:grid-cols-[320px_minmax(0,1fr)]"
+          }`}
+        >
           <aside
-            className="rounded-[2rem] border border-base-300 bg-base-100/95 p-5 shadow-lg"
+            className={`group/sidebar flex min-h-screen flex-col border-r border-base-300 bg-[linear-gradient(180deg,_rgba(255,255,255,0.96)_0%,_rgba(240,249,255,0.94)_100%)] shadow-lg transition-all ${
+              isSidebarCollapsed ? "px-2 py-2" : "px-3 py-2.5"
+            }`}
             aria-label="Chat sidebar"
           >
-            <div className="mb-5 flex items-start justify-between gap-3">
-              <div>
-                <p className="text-sm font-medium text-info">Conversations</p>
-                <h2 className="mt-2 text-2xl font-semibold">Recent medical chats</h2>
+            <div className={`mb-4 ${isSidebarCollapsed ? "px-0.5" : "px-0.5 py-0.5"}`}>
+              <div
+                className={`group/logo relative flex ${
+                  isSidebarCollapsed ? "justify-center" : "items-center justify-between"
+                }`}
+              >
+                {isSidebarCollapsed ? (
+                  <div className="group/logo relative h-12 w-12">
+                    <div className="grid h-12 w-12 place-items-center text-info transition-opacity group-hover/logo:opacity-0 group-focus-within/logo:opacity-0">
+                      <Stethoscope />
+                    </div>
+                    <button
+                      type="button"
+                      className="pointer-events-none absolute inset-0 m-auto grid h-11 w-11 place-items-center rounded-[0.65rem] border border-base-300 bg-base-100 text-base-content opacity-0 shadow-sm transition-opacity group-hover/logo:pointer-events-auto group-hover/logo:opacity-100 group-focus-within/logo:pointer-events-auto group-focus-within/logo:opacity-100 focus-visible:pointer-events-auto focus-visible:opacity-100"
+                      aria-label="Expand sidebar"
+                      onClick={toggleSidebar}
+                    >
+                      <svg
+                        aria-hidden="true"
+                        className="h-4 w-4"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <rect x="3" y="4" width="18" height="16" rx="2" />
+                        <path d="M9 4v16" />
+                      </svg>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="grid h-12 w-12 place-items-center text-info">
+                    <Stethoscope />
+                  </div>
+                )}
+                <button
+                  type="button"
+                  className={`grid h-11 w-11 place-items-center rounded-[0.65rem] text-base-content transition ${
+                    isSidebarCollapsed ? "hidden" : "opacity-100"
+                  }`}
+                  aria-label="Collapse sidebar"
+                  onClick={toggleSidebar}
+                >
+                  <span className="grid h-11 w-11 place-items-center rounded-[0.65rem] border border-transparent transition hover:bg-base-100 hover:shadow-sm">
+                    <svg
+                      aria-hidden="true"
+                      className="h-4 w-4"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <rect x="3" y="4" width="18" height="16" rx="2" />
+                      <path d="M9 4v16" />
+                    </svg>
+                  </span>
+                </button>
               </div>
+            </div>
+
+            <div className="mb-4 px-1">
               <button
                 type="button"
-                className="btn btn-info btn-sm rounded-full"
+                aria-label="New chat"
+                className={`btn btn-info rounded-full ${
+                  isSidebarCollapsed ? "btn-square w-full" : "w-full"
+                }`}
                 onClick={handleStartNewChat}
               >
-                New chat
+                {isSidebarCollapsed ? (
+                  <svg
+                    aria-hidden="true"
+                    className="h-5 w-5"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M12 5v14" />
+                    <path d="M5 12h14" />
+                  </svg>
+                ) : (
+                  "+ New chat"
+                )}
               </button>
             </div>
 
-            <div className="space-y-4">
-              <div className="rounded-[1.5rem] border border-base-200 bg-base-100 p-3">
-                {isLoadingChatList ? (
-                  <p className="text-sm text-base-content/60">Loading conversations...</p>
-                ) : chatList.length === 0 ? (
-                  <p className="text-sm leading-6 text-base-content/60">
-                    No saved chats yet. Start with a medical question and your
-                    conversation will appear here.
-                  </p>
-                ) : (
-                  <nav className="space-y-2" aria-label="Saved conversations">
-                    {chatList.map((chat) => (
-                      <button
-                        key={chat.id}
-                        type="button"
-                        aria-current={chat.id === chatId ? "page" : undefined}
-                        className={`w-full rounded-[1.25rem] border px-4 py-3 text-left transition ${
-                          chat.id === chatId
-                            ? "border-info/40 bg-info/10"
-                            : "border-base-200 bg-base-100 hover:border-info/25 hover:bg-base-200/50"
-                        }`}
-                        onClick={() => handleSelectChat(chat.id)}
-                      >
-                        <p className="text-sm font-medium leading-6">
-                          {chat.title ?? "New medical chat"}
-                        </p>
-                        <p className="mt-1 text-xs uppercase tracking-[0.18em] text-base-content/45">
-                          {chat.id === chatId ? "Current chat" : "Open chat"}
-                        </p>
-                      </button>
-                    ))}
-                  </nav>
-                )}
-              </div>
-
-              <div className="rounded-[1.5rem] border border-warning/30 bg-warning/10 p-4">
-                <p className="text-sm font-medium">Important disclaimer</p>
-                <p className="mt-2 text-sm leading-6 text-base-content/75">
-                  {CHAT_DISCLAIMER}
-                </p>
-              </div>
-
-              <div className="rounded-[1.5rem] border border-base-200 bg-base-200/60 p-4">
-                <p className="text-sm font-medium">Supported medical topics</p>
-                <ul className="mt-3 space-y-2 text-sm leading-6 text-base-content/75">
-                  <li>Symptoms and possible causes</li>
-                  <li>Medication side effects and precautions</li>
-                  <li>Lab values and common interpretations</li>
-                  <li>Prevention, wellness, and urgent warning signs</li>
-                </ul>
-              </div>
-
-              <div className="rounded-[1.5rem] border border-base-200 bg-base-100 p-4">
-                <p className="text-sm font-medium">Suggested prompts</p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {SUGGESTED_MEDICAL_PROMPTS.map((prompt) => (
-                    <button
-                      key={prompt}
-                      type="button"
-                      className="btn btn-sm btn-outline btn-info h-auto whitespace-normal rounded-full px-4 py-2 text-left font-normal"
-                      onClick={() => setDraft(prompt)}
+            <div className="flex-1 space-y-4 px-1">
+              {isSidebarCollapsed ? (
+                <div className="space-y-3">
+                  <button
+                    type="button"
+                    aria-label="Search chats"
+                    className="btn btn-ghost btn-square w-full rounded-2xl border border-base-200 bg-base-100"
+                    onClick={() => setIsSidebarCollapsed(false)}
+                  >
+                    <svg
+                      aria-hidden="true"
+                      className="h-5 w-5"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
                     >
-                      {prompt}
-                    </button>
-                  ))}
+                      <circle cx="11" cy="11" r="7" />
+                      <path d="m21 21-4.3-4.3" />
+                    </svg>
+                  </button>
+                  <div className="rounded-[1.5rem] border border-base-200 bg-base-100 p-2">
+                    <p className="mb-2 text-center text-[10px] font-medium uppercase tracking-[0.2em] text-base-content/45">
+                      Chats
+                    </p>
+                    {isLoadingChatList ? (
+                      <div className="flex justify-center py-2">
+                        <span className="loading loading-spinner loading-sm" />
+                      </div>
+                    ) : filteredChats.length === 0 ? (
+                      <div className="flex justify-center py-2">
+                        <span className="text-xs text-base-content/45">0</span>
+                      </div>
+                    ) : (
+                      <nav className="space-y-2" aria-label="Saved conversations">
+                        {filteredChats.map((chat) => (
+                          <button
+                            key={chat.id}
+                            type="button"
+                            aria-label={chat.title ?? "New medical chat"}
+                            aria-current={chat.id === chatId ? "page" : undefined}
+                            className={`btn btn-square w-full rounded-2xl border ${
+                              chat.id === chatId
+                                ? "border-info/40 bg-info/10"
+                                : "border-base-200 bg-base-100"
+                            }`}
+                            onClick={() => handleSelectChat(chat.id)}
+                          >
+                            <svg
+                              aria-hidden="true"
+                              className="h-5 w-5"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                            </svg>
+                          </button>
+                        ))}
+                      </nav>
+                    )}
+                  </div>
                 </div>
+              ) : (
+                <>
+                  <div className="rounded-[1.5rem] border border-base-200 bg-base-100 p-3">
+                    <label className="mb-2 block text-xs font-medium uppercase tracking-[0.18em] text-base-content/45">
+                      Search chats
+                    </label>
+                    <label className="input input-bordered flex items-center gap-2 rounded-full bg-base-100">
+                      <svg
+                        aria-hidden="true"
+                        className="h-4 w-4 opacity-60"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <circle cx="11" cy="11" r="7" />
+                        <path d="m21 21-4.3-4.3" />
+                      </svg>
+                      <input
+                        type="text"
+                        className="grow"
+                        placeholder="Search chats"
+                        value={chatSearch}
+                        onChange={(event) => setChatSearch(event.target.value)}
+                      />
+                    </label>
+                  </div>
+
+                  <div className="rounded-[1.5rem] border border-base-200 bg-base-100 p-3">
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <p className="text-xs font-medium uppercase tracking-[0.18em] text-base-content/45">
+                        Your chats
+                      </p>
+                      <p className="text-xs text-base-content/45">
+                        {filteredChats.length}
+                      </p>
+                    </div>
+                    {isLoadingChatList ? (
+                      <p className="text-sm text-base-content/60">Loading conversations...</p>
+                    ) : filteredChats.length === 0 ? (
+                      chatSearch.trim() ? (
+                        <p className="text-sm leading-6 text-base-content/60">
+                          No chats match that search yet.
+                        </p>
+                      ) : null
+                    ) : (
+                      <nav className="space-y-2" aria-label="Saved conversations">
+                        {filteredChats.map((chat) => (
+                          <button
+                            key={chat.id}
+                            type="button"
+                            aria-current={chat.id === chatId ? "page" : undefined}
+                            className={`w-full rounded-[1.25rem] border px-4 py-3 text-left transition ${
+                              chat.id === chatId
+                                ? "border-info/40 bg-info/10"
+                                : "border-base-200 bg-base-100 hover:border-info/25 hover:bg-base-200/50"
+                            }`}
+                            onClick={() => handleSelectChat(chat.id)}
+                          >
+                            <p className="text-sm font-medium leading-6">
+                              {chat.title ?? "New medical chat"}
+                            </p>
+                            <p className="mt-1 text-xs uppercase tracking-[0.18em] text-base-content/45">
+                              {chat.id === chatId ? "Current chat" : "Open chat"}
+                            </p>
+                          </button>
+                        ))}
+                      </nav>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className="mt-4 border-t border-base-200 px-1 pt-4">
+              <div className="relative">
+                <button
+                  type="button"
+                  aria-label="Demo user settings"
+                  className={`flex rounded-[1.5rem] border border-base-200 bg-base-100 text-left transition hover:border-info/25 hover:bg-info/5 ${
+                    isSidebarCollapsed
+                      ? "w-full justify-center px-2 py-3"
+                      : "w-full items-center gap-3 px-3 py-3"
+                  }`}
+                  aria-expanded={isProfileMenuOpen}
+                  aria-haspopup="menu"
+                  onClick={() => setIsProfileMenuOpen((currentState) => !currentState)}
+                >
+                  <div className="avatar placeholder">
+                    <div className="w-11 rounded-2xl bg-neutral text-neutral-content">
+                      <span className="text-sm font-semibold">DB</span>
+                    </div>
+                  </div>
+                  {!isSidebarCollapsed ? (
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">Demo User</p>
+                      <p className="truncate text-xs text-base-content/45">
+                        Authentication coming later
+                      </p>
+                    </div>
+                  ) : null}
+                  <svg
+                    aria-hidden="true"
+                    className="h-5 w-5 text-base-content/55"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <circle cx="12" cy="12" r="3" />
+                    <path d="M19.4 15a1.7 1.7 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.07V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-.4-1.07 1.7 1.7 0 0 0-1-.6 1.7 1.7 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.07-.4H2.9a2 2 0 1 1 0-4H3a1.7 1.7 0 0 0 1.07-.4 1.7 1.7 0 0 0 .6-1 1.7 1.7 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .4-1.07V2.9a2 2 0 1 1 4 0V3a1.7 1.7 0 0 0 .4 1.07 1.7 1.7 0 0 0 1 .6 1.7 1.7 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9c.3.3.5.64.6 1 .1.34.1.7 0 1.04-.1.36-.3.7-.6 1 .3.3.5.64.6 1 .1.34.1.7 0 1.04-.1.36-.3.7-.6 1Z" />
+                  </svg>
+                </button>
+
+                {isProfileMenuOpen ? (
+                  <div
+                    className={`absolute bottom-[calc(100%+0.75rem)] rounded-[1.5rem] border border-base-200 bg-base-100 p-2 shadow-2xl ${
+                      isSidebarCollapsed ? "left-0 w-52" : "left-0 right-0"
+                    }`}
+                    role="menu"
+                    aria-label="Profile menu"
+                  >
+                    <button
+                      type="button"
+                      className="flex w-full items-center justify-between rounded-[1rem] px-3 py-3 text-left text-sm transition hover:bg-base-200"
+                      role="menuitem"
+                    >
+                      <span>Profile</span>
+                      <span className="text-xs text-base-content/45">Soon</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="flex w-full items-center justify-between rounded-[1rem] px-3 py-3 text-left text-sm text-error transition hover:bg-error/10"
+                      role="menuitem"
+                    >
+                      <span>Logout</span>
+                      <span className="text-xs text-base-content/45">Soon</span>
+                    </button>
+                  </div>
+                ) : null}
               </div>
             </div>
           </aside>
 
           <main
-            className="flex min-h-[70vh] flex-col rounded-[2rem] border border-base-300 bg-base-100 shadow-xl shadow-sky-100/80"
+            className="flex min-h-screen flex-col bg-base-100/90 px-4 py-5 shadow-xl shadow-sky-100/80 sm:px-5 sm:py-6"
             aria-busy={isLoadingHistory || isResponding}
           >
             {emergencyBanner ? (
@@ -451,22 +688,12 @@ export function ChatShell({ initialChatId = null }: ChatShellProps) {
             <div className="border-b border-base-200 px-5 py-4">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <h2 className="text-lg font-semibold">
-                    {chatId ? "Medical conversation" : "New medical conversation"}
-                  </h2>
-                  <p className="text-sm text-base-content/65">
-                    {chatId
-                      ? "Conversation history is loaded from local persistence."
-                      : "Responses are educational and safety-first."}
-                  </p>
-                </div>
-                <div className="badge badge-neutral badge-outline">
-                  {chatId ? "Persistent chat" : "Ready to start"}
+                  <h2 className="text-lg font-semibold">Medical conversation</h2>
                 </div>
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-4 py-5 sm:px-5">
+            <div className="overflow-y-auto px-4 py-5 sm:px-5">
               {isLoadingHistory ? (
                 <div className="flex h-full min-h-[22rem] items-center justify-center">
                   <div
@@ -480,18 +707,11 @@ export function ChatShell({ initialChatId = null }: ChatShellProps) {
                   </div>
                 </div>
               ) : messages.length === 0 ? (
-                <div className="flex h-full min-h-[22rem] items-center justify-center">
+                <div className="flex min-h-[18rem] items-start justify-center pt-8">
                   <div className="max-w-xl text-center">
-                    <p className="text-sm font-medium uppercase tracking-[0.22em] text-info">
-                      Start here
-                    </p>
-                    <h3 className="mt-3 text-3xl font-semibold tracking-tight">
+                    <h3 className="text-3xl font-semibold tracking-tight">
                       Ask a medical question to begin the chat.
                     </h3>
-                    <p className="mt-3 text-base leading-7 text-base-content/70">
-                      Try a symptom question, a medication question, or ask what a
-                      lab result might mean.
-                    </p>
                     <div className="mt-6 grid gap-3 sm:grid-cols-2">
                       {SUGGESTED_MEDICAL_PROMPTS.slice(0, 4).map((prompt) => (
                         <button
@@ -568,45 +788,45 @@ export function ChatShell({ initialChatId = null }: ChatShellProps) {
             </div>
 
             <form
-              className="border-t border-base-200 px-4 py-4 sm:px-5"
+              className="border-t border-base-200 px-4 py-3 sm:px-5"
               onSubmit={handleSubmit}
             >
-              <label className="mb-3 block text-sm font-medium" htmlFor="chat-input">
-                Your medical question
-              </label>
-              <p id="chat-composer-hint" className="sr-only">
-                Press Enter to send. Press Shift plus Enter to add a new line.
-              </p>
-              <div className="rounded-[1.7rem] border border-base-300 bg-base-100 p-3 shadow-sm">
-                <textarea
-                  id="chat-input"
-                  className="textarea h-32 w-full resize-none border-0 bg-transparent px-2 text-base leading-7 outline-none focus:outline-none"
-                  placeholder="Describe your symptom, lab result, medication question, or health concern..."
-                  value={draft}
-                  aria-describedby="chat-composer-hint chat-safety-hint"
-                  onChange={(event) => setDraft(event.target.value)}
-                  onKeyDown={handleComposerKeyDown}
-                />
-                <div className="mt-3 flex items-center justify-between gap-3 border-t border-base-200 pt-3">
-                  <p
-                    id="chat-safety-hint"
-                    className="max-w-md text-xs leading-5 text-base-content/60"
-                  >
-                    If symptoms are severe, worsening, or involve trouble breathing,
-                    chest pain, confusion, or loss of consciousness, seek urgent care.
-                  </p>
-                  <button
-                    type="submit"
-                    className="btn btn-info rounded-full px-6"
-                    disabled={
-                      draft.trim().length === 0 || isResponding || isLoadingHistory
-                    }
-                  >
-                    Send
-                  </button>
+              <div className="mx-auto w-full max-w-3xl">
+                <p id="chat-composer-hint" className="sr-only">
+                  Press Enter to send. Press Shift plus Enter to add a new line.
+                </p>
+                <div className="rounded-[1.7rem] border border-base-300 bg-base-100 p-3 shadow-sm">
+                  <textarea
+                    id="chat-input"
+                    className="textarea h-32 w-full resize-none border-0 bg-transparent px-2 text-base leading-7 outline-none focus:outline-none"
+                    placeholder="Describe your symptom, lab result, medication question, or health concern..."
+                    value={draft}
+                    aria-describedby="chat-composer-hint chat-safety-hint"
+                    onChange={(event) => setDraft(event.target.value)}
+                    onKeyDown={handleComposerKeyDown}
+                  />
+                  <div className="mt-3 flex items-center justify-between gap-3 border-t border-base-200 pt-3">
+                    <p
+                      id="chat-safety-hint"
+                      className="max-w-md text-xs leading-5 text-base-content/60"
+                    >
+                      If symptoms are severe, worsening, or involve trouble breathing,
+                      chest pain, confusion, or loss of consciousness, seek urgent care.
+                    </p>
+                    <button
+                      type="submit"
+                      className="btn btn-info rounded-full px-6"
+                      disabled={
+                        draft.trim().length === 0 || isResponding || isLoadingHistory
+                      }
+                    >
+                      Send
+                    </button>
+                  </div>
                 </div>
               </div>
             </form>
+
           </main>
         </div>
       </div>
