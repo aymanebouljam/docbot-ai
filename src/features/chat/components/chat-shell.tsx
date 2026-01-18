@@ -8,7 +8,7 @@ import {
   useEffect,
   useState,
 } from "react";
-import { Stethoscope } from "lucide-react";
+import { Download, PanelLeft, Settings, Stethoscope } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import { SUGGESTED_MEDICAL_PROMPTS } from "@/features/chat/constants";
@@ -372,19 +372,7 @@ export function ChatShell({ initialChatId = null }: ChatShellProps) {
                       aria-label="Expand sidebar"
                       onClick={toggleSidebar}
                     >
-                      <svg
-                        aria-hidden="true"
-                        className="h-4 w-4"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <rect x="3" y="4" width="18" height="16" rx="2" />
-                        <path d="M9 4v16" />
-                      </svg>
+                      <PanelLeft aria-hidden="true" className="h-4 w-4" />
                     </button>
                   </div>
                 ) : (
@@ -401,19 +389,7 @@ export function ChatShell({ initialChatId = null }: ChatShellProps) {
                   onClick={toggleSidebar}
                 >
                   <span className="grid h-11 w-11 place-items-center rounded-[0.65rem] border border-transparent transition hover:bg-base-100 hover:shadow-sm">
-                    <svg
-                      aria-hidden="true"
-                      className="h-4 w-4"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <rect x="3" y="4" width="18" height="16" rx="2" />
-                      <path d="M9 4v16" />
-                    </svg>
+                    <PanelLeft aria-hidden="true" className="h-4 w-4" />
                   </span>
                 </button>
               </div>
@@ -600,7 +576,7 @@ export function ChatShell({ initialChatId = null }: ChatShellProps) {
                   className={`flex rounded-[1.5rem] border border-base-200 bg-base-100 text-left transition hover:border-info/25 hover:bg-info/5 ${
                     isSidebarCollapsed
                       ? "w-full justify-center px-2 py-3"
-                      : "w-full items-center gap-3 px-3 py-3"
+                      : "w-full items-center gap-4 px-4 py-3.5"
                   }`}
                   aria-expanded={isProfileMenuOpen}
                   aria-haspopup="menu"
@@ -619,19 +595,10 @@ export function ChatShell({ initialChatId = null }: ChatShellProps) {
                       </p>
                     </div>
                   ) : null}
-                  <svg
+                  <Settings
                     aria-hidden="true"
-                    className="h-5 w-5 text-base-content/55"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <circle cx="12" cy="12" r="3" />
-                    <path d="M19.4 15a1.7 1.7 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.07V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-.4-1.07 1.7 1.7 0 0 0-1-.6 1.7 1.7 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.07-.4H2.9a2 2 0 1 1 0-4H3a1.7 1.7 0 0 0 1.07-.4 1.7 1.7 0 0 0 .6-1 1.7 1.7 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .4-1.07V2.9a2 2 0 1 1 4 0V3a1.7 1.7 0 0 0 .4 1.07 1.7 1.7 0 0 0 1 .6 1.7 1.7 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9c.3.3.5.64.6 1 .1.34.1.7 0 1.04-.1.36-.3.7-.6 1 .3.3.5.64.6 1 .1.34.1.7 0 1.04-.1.36-.3.7-.6 1Z" />
-                  </svg>
+                    className="h-5 w-5 shrink-0 text-base-content/55"
+                  />
                 </button>
 
                 {isProfileMenuOpen ? (
@@ -685,13 +652,23 @@ export function ChatShell({ initialChatId = null }: ChatShellProps) {
                 {errorMessage}
               </div>
             ) : null}
-            <div className="border-b border-base-200 px-5 py-4">
+            <div className="px-5 py-4">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <h2 className="text-lg font-semibold">Medical conversation</h2>
+                  <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+                    DocBot
+                  </h2>
                 </div>
+                <button
+                  type="button"
+                  className="grid h-11 w-11 place-items-center rounded-[0.65rem] text-base-content transition hover:bg-base-200"
+                  aria-label="Download conversation"
+                >
+                  <Download aria-hidden="true" className="h-5 w-5" />
+                </button>
               </div>
             </div>
+            <div className="h-px w-full bg-base-300" />
 
             <div className="overflow-y-auto px-4 py-5 sm:px-5">
               {isLoadingHistory ? (
