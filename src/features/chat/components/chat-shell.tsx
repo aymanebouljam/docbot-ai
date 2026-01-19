@@ -8,7 +8,13 @@ import {
   useEffect,
   useState,
 } from "react";
-import { Download, PanelLeft, Settings, Stethoscope } from "lucide-react";
+import {
+  Download,
+  PanelLeft,
+  SendHorizontal,
+  Settings,
+  Stethoscope,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import { SUGGESTED_MEDICAL_PROMPTS } from "@/features/chat/constants";
@@ -340,7 +346,7 @@ export function ChatShell({ initialChatId = null }: ChatShellProps) {
   }
 
   return (
-    <div className="grid min-h-screen bg-[radial-gradient(circle_at_top,_rgba(14,165,233,0.16),_transparent_35%),linear-gradient(180deg,_#f8fafc_0%,_#e0f2fe_100%)]">
+    <div className="grid min-h-screen bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.16),_transparent_35%),linear-gradient(180deg,_#f7fcfa_0%,_#dcfce7_100%)]">
       <div className="flex min-h-screen w-full flex-col">
         <div
           className={`grid min-h-screen flex-1 ${
@@ -350,7 +356,7 @@ export function ChatShell({ initialChatId = null }: ChatShellProps) {
           }`}
         >
           <aside
-            className={`group/sidebar flex min-h-screen flex-col border-r border-base-300 bg-[linear-gradient(180deg,_rgba(255,255,255,0.96)_0%,_rgba(240,249,255,0.94)_100%)] shadow-lg transition-all ${
+            className={`group/sidebar flex min-h-screen flex-col border-r border-[#c9e3df] bg-[linear-gradient(180deg,_rgba(233,247,246,0.98)_0%,_rgba(203,232,228,0.98)_100%)] shadow-lg transition-all ${
               isSidebarCollapsed ? "px-2 py-2" : "px-3 py-2.5"
             }`}
             aria-label="Chat sidebar"
@@ -363,7 +369,7 @@ export function ChatShell({ initialChatId = null }: ChatShellProps) {
               >
                 {isSidebarCollapsed ? (
                   <div className="group/logo relative h-12 w-12">
-                    <div className="grid h-12 w-12 place-items-center text-info transition-opacity group-hover/logo:opacity-0 group-focus-within/logo:opacity-0">
+                    <div className="grid h-12 w-12 place-items-center text-emerald-600 transition-opacity group-hover/logo:opacity-0 group-focus-within/logo:opacity-0">
                       <Stethoscope />
                     </div>
                     <button
@@ -376,7 +382,7 @@ export function ChatShell({ initialChatId = null }: ChatShellProps) {
                     </button>
                   </div>
                 ) : (
-                  <div className="grid h-12 w-12 place-items-center text-info">
+                  <div className="grid h-12 w-12 place-items-center text-emerald-600">
                     <Stethoscope />
                   </div>
                 )}
@@ -399,7 +405,7 @@ export function ChatShell({ initialChatId = null }: ChatShellProps) {
               <button
                 type="button"
                 aria-label="New chat"
-                className={`btn btn-info rounded-full ${
+                className={`btn rounded-full border-0 bg-emerald-600 text-white hover:bg-emerald-700 ${
                   isSidebarCollapsed ? "btn-square w-full" : "w-full"
                 }`}
                 onClick={handleStartNewChat}
@@ -469,7 +475,7 @@ export function ChatShell({ initialChatId = null }: ChatShellProps) {
                             aria-current={chat.id === chatId ? "page" : undefined}
                             className={`btn btn-square w-full rounded-2xl border ${
                               chat.id === chatId
-                                ? "border-info/40 bg-info/10"
+                                ? "border-emerald-200 bg-emerald-50 text-emerald-700"
                                 : "border-base-200 bg-base-100"
                             }`}
                             onClick={() => handleSelectChat(chat.id)}
@@ -494,33 +500,28 @@ export function ChatShell({ initialChatId = null }: ChatShellProps) {
                 </div>
               ) : (
                 <>
-                  <div className="rounded-[1.5rem] border border-base-200 bg-base-100 p-3">
-                    <label className="mb-2 block text-xs font-medium uppercase tracking-[0.18em] text-base-content/45">
-                      Search chats
-                    </label>
-                    <label className="input input-bordered flex items-center gap-2 rounded-full bg-base-100">
-                      <svg
-                        aria-hidden="true"
-                        className="h-4 w-4 opacity-60"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <circle cx="11" cy="11" r="7" />
-                        <path d="m21 21-4.3-4.3" />
-                      </svg>
-                      <input
-                        type="text"
-                        className="grow"
-                        placeholder="Search chats"
-                        value={chatSearch}
-                        onChange={(event) => setChatSearch(event.target.value)}
-                      />
-                    </label>
-                  </div>
+                  <label className="input input-bordered flex items-center gap-2 rounded-full border-base-200 bg-base-100">
+                    <svg
+                      aria-hidden="true"
+                      className="h-4 w-4 opacity-60"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <circle cx="11" cy="11" r="7" />
+                      <path d="m21 21-4.3-4.3" />
+                    </svg>
+                    <input
+                      type="text"
+                      className="grow"
+                      placeholder="Search chats"
+                      value={chatSearch}
+                      onChange={(event) => setChatSearch(event.target.value)}
+                    />
+                  </label>
 
                   <div className="rounded-[1.5rem] border border-base-200 bg-base-100 p-3">
                     <div className="mb-3 flex items-center justify-between gap-3">
@@ -548,8 +549,8 @@ export function ChatShell({ initialChatId = null }: ChatShellProps) {
                             aria-current={chat.id === chatId ? "page" : undefined}
                             className={`w-full rounded-[1.25rem] border px-4 py-3 text-left transition ${
                               chat.id === chatId
-                                ? "border-info/40 bg-info/10"
-                                : "border-base-200 bg-base-100 hover:border-info/25 hover:bg-base-200/50"
+                                ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                                : "border-base-200 bg-base-100 hover:border-emerald-200 hover:bg-emerald-50/60"
                             }`}
                             onClick={() => handleSelectChat(chat.id)}
                           >
@@ -573,7 +574,7 @@ export function ChatShell({ initialChatId = null }: ChatShellProps) {
                 <button
                   type="button"
                   aria-label="Demo user settings"
-                  className={`flex rounded-[1.5rem] border border-base-200 bg-base-100 text-left transition hover:border-info/25 hover:bg-info/5 ${
+                  className={`flex rounded-[1.5rem] border border-base-200 bg-base-100 text-left transition hover:border-emerald-200 hover:bg-emerald-50 ${
                     isSidebarCollapsed
                       ? "w-full justify-center px-2 py-3"
                       : "w-full items-center gap-4 px-4 py-3.5"
@@ -632,7 +633,7 @@ export function ChatShell({ initialChatId = null }: ChatShellProps) {
           </aside>
 
           <main
-            className="flex min-h-screen flex-col bg-base-100/90 px-4 py-5 shadow-xl shadow-sky-100/80 sm:px-5 sm:py-6"
+            className="flex min-h-screen flex-col bg-[linear-gradient(180deg,_rgba(236,253,245,0.78)_0%,_rgba(255,255,255,0.96)_32%,_rgba(236,253,245,0.72)_100%)] px-4 py-5 shadow-xl shadow-emerald-100/80 sm:px-5 sm:py-6"
             aria-busy={isLoadingHistory || isResponding}
           >
             {emergencyBanner ? (
@@ -694,7 +695,7 @@ export function ChatShell({ initialChatId = null }: ChatShellProps) {
                         <button
                           key={prompt}
                           type="button"
-                          className="rounded-[1.4rem] border border-info/20 bg-info/5 px-4 py-4 text-left text-sm leading-6 transition hover:border-info/40 hover:bg-info/10"
+                          className="rounded-[1.4rem] border border-emerald-200 bg-emerald-50 px-4 py-4 text-left text-sm leading-6 transition hover:border-emerald-300 hover:bg-emerald-100"
                           onClick={() => setDraft(prompt)}
                         >
                           {prompt}
@@ -718,7 +719,7 @@ export function ChatShell({ initialChatId = null }: ChatShellProps) {
                       <div
                         className={`chat-bubble max-w-[85%] whitespace-pre-wrap text-sm leading-6 sm:text-base ${
                           message.role === "user"
-                            ? "chat-bubble-info text-info-content"
+                            ? "border border-emerald-500 bg-emerald-600 text-white"
                             : message.tone === "urgent"
                               ? "border border-error/30 bg-error/10 text-base-content"
                               : "bg-base-200 text-base-content"
@@ -733,7 +734,7 @@ export function ChatShell({ initialChatId = null }: ChatShellProps) {
                             <button
                               key={`${message.id}-${prompt}`}
                               type="button"
-                              className="btn btn-xs btn-outline btn-info rounded-full"
+                              className="btn btn-xs rounded-full border-emerald-200 bg-white text-emerald-700 hover:border-emerald-300 hover:bg-emerald-50"
                               onClick={() => setDraft(prompt)}
                             >
                               {prompt}
@@ -765,42 +766,41 @@ export function ChatShell({ initialChatId = null }: ChatShellProps) {
             </div>
 
             <form
-              className="border-t border-base-200 px-4 py-3 sm:px-5"
+              className="border-t border-emerald-100 px-4 py-3 sm:px-5"
               onSubmit={handleSubmit}
             >
               <div className="mx-auto w-full max-w-3xl">
                 <p id="chat-composer-hint" className="sr-only">
                   Press Enter to send. Press Shift plus Enter to add a new line.
                 </p>
-                <div className="rounded-[1.7rem] border border-base-300 bg-base-100 p-3 shadow-sm">
+                <div className="relative">
                   <textarea
                     id="chat-input"
-                    className="textarea h-32 w-full resize-none border-0 bg-transparent px-2 text-base leading-7 outline-none focus:outline-none"
+                    className="textarea h-32 w-full resize-none rounded-[1.4rem] border border-emerald-200 bg-white px-4 py-3 pr-16 text-base leading-7 shadow-sm outline-none focus:outline-none"
                     placeholder="Describe your symptom, lab result, medication question, or health concern..."
                     value={draft}
                     aria-describedby="chat-composer-hint chat-safety-hint"
                     onChange={(event) => setDraft(event.target.value)}
                     onKeyDown={handleComposerKeyDown}
                   />
-                  <div className="mt-3 flex items-center justify-between gap-3 border-t border-base-200 pt-3">
-                    <p
-                      id="chat-safety-hint"
-                      className="max-w-md text-xs leading-5 text-base-content/60"
-                    >
-                      If symptoms are severe, worsening, or involve trouble breathing,
-                      chest pain, confusion, or loss of consciousness, seek urgent care.
-                    </p>
-                    <button
-                      type="submit"
-                      className="btn btn-info rounded-full px-6"
-                      disabled={
-                        draft.trim().length === 0 || isResponding || isLoadingHistory
-                      }
-                    >
-                      Send
-                    </button>
-                  </div>
+                  <button
+                    type="submit"
+                    aria-label="Send message"
+                    className={`absolute bottom-3 right-3 grid h-10 w-10 place-items-center rounded-full transition ${
+                      draft.trim().length === 0 || isResponding || isLoadingHistory
+                        ? "cursor-not-allowed bg-base-200 text-base-content/35"
+                        : "bg-emerald-600 text-white shadow-sm hover:bg-emerald-700"
+                    }`}
+                    disabled={
+                      draft.trim().length === 0 || isResponding || isLoadingHistory
+                    }
+                  >
+                    <SendHorizontal aria-hidden="true" className="h-4 w-4" />
+                  </button>
                 </div>
+                <p className="mt-3 text-center text-xs leading-5 text-base-content/55">
+                  DocBot provides medical education only and does not replace professional care.
+                </p>
               </div>
             </form>
 
