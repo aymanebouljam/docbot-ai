@@ -2,6 +2,10 @@ import { processUserMessage } from "@/server/chat-service";
 import { generateMedicalAnswer } from "@/server/groq";
 import { checkRateLimit } from "@/server/rate-limit";
 import {
+  createUnauthorizedResponse,
+  getServerAuthSession,
+} from "@/server/auth";
+import {
   createMessageRequestSchema,
   parseRequestBody,
 } from "@/server/validation";
@@ -11,6 +15,12 @@ type ChatMessagesRouteContext = {
 };
 
 export async function POST(request: Request, context: ChatMessagesRouteContext) {
+  const session = await getServerAuthSession();
+
+  if (!session) {
+    return createUnauthorizedResponse();
+  }
+
   const { chatId } = await context.params;
   const rateLimit = checkRateLimit({ request, scope: `chat-message:${chatId}` });
 

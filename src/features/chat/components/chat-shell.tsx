@@ -15,6 +15,7 @@ import {
   Settings,
   Stethoscope,
 } from "lucide-react";
+import { signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
 import { SUGGESTED_MEDICAL_PROMPTS } from "@/features/chat/constants";
@@ -28,6 +29,8 @@ import { URGENT_MEDICAL_RESPONSE } from "@/features/medical-safety/response";
 
 type ChatShellProps = {
   initialChatId?: string | null;
+  currentUserEmail?: string;
+  currentUserName?: string;
 };
 
 type CreateChatResponse = {
@@ -86,7 +89,11 @@ function buildUiMessage(input: {
   };
 }
 
-export function ChatShell({ initialChatId = null }: ChatShellProps) {
+export function ChatShell({
+  initialChatId = null,
+  currentUserEmail,
+  currentUserName,
+}: ChatShellProps) {
   const router = useRouter();
   const [draft, setDraft] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -590,9 +597,11 @@ export function ChatShell({ initialChatId = null }: ChatShellProps) {
                   </div>
                   {!isSidebarCollapsed ? (
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium">Demo User</p>
+                      <p className="truncate text-sm font-medium">
+                        {currentUserName ?? "Demo User"}
+                      </p>
                       <p className="truncate text-xs text-base-content/45">
-                        Authentication coming later
+                        {currentUserEmail ?? "demo@docbot.ai"}
                       </p>
                     </div>
                   ) : null}
@@ -622,9 +631,10 @@ export function ChatShell({ initialChatId = null }: ChatShellProps) {
                       type="button"
                       className="flex w-full items-center justify-between rounded-[1rem] px-3 py-3 text-left text-sm text-error transition hover:bg-error/10"
                       role="menuitem"
+                      onClick={() => void signOut({ callbackUrl: "/sign-in" })}
                     >
                       <span>Logout</span>
-                      <span className="text-xs text-base-content/45">Soon</span>
+                      <span className="text-xs text-base-content/45">Now</span>
                     </button>
                   </div>
                 ) : null}
