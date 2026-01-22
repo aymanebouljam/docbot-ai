@@ -3,7 +3,10 @@ import userEvent from "@testing-library/user-event";
 
 import { ChatShell } from "@/features/chat/components/chat-shell";
 
-const replace = vi.fn();
+const { replace, signOut } = vi.hoisted(() => ({
+  replace: vi.fn(),
+  signOut: vi.fn(),
+}));
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
@@ -11,11 +14,18 @@ vi.mock("next/navigation", () => ({
   }),
 }));
 
+vi.mock("next-auth/react", () => ({
+  signOut,
+}));
+
 describe("chat shell", () => {
   const originalFetch = global.fetch;
+  const composerPlaceholder =
+    /describe your symptom, lab result, medication question, or health concern/i;
 
   beforeEach(() => {
     replace.mockReset();
+    signOut.mockReset();
     global.fetch = vi.fn(async (input, init?: RequestInit) => {
       const url = typeof input === "string" ? input : input.toString();
 
@@ -79,10 +89,8 @@ describe("chat shell", () => {
   it("renders the chat input", () => {
     render(<ChatShell />);
 
-    expect(
-      screen.getByLabelText(/your medical question/i)
-    ).toBeInTheDocument();
-    expect(screen.getByText(/medical workspace/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(composerPlaceholder)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /docbot/i })).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/search chats/i)).toBeInTheDocument();
   });
 
@@ -94,7 +102,6 @@ describe("chat shell", () => {
     expect(
       screen.queryByPlaceholderText(/search chats/i)
     ).not.toBeInTheDocument();
-    expect(screen.queryByText(/medical workspace/i)).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /expand sidebar/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /new chat/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /search chats/i })).toBeInTheDocument();
@@ -112,10 +119,10 @@ describe("chat shell", () => {
     render(<ChatShell />);
 
     await user.type(
-      screen.getByLabelText(/your medical question/i),
+      screen.getByPlaceholderText(composerPlaceholder),
       "What causes low iron?"
     );
-    await user.click(screen.getByRole("button", { name: /send/i }));
+    await user.click(screen.getByRole("button", { name: /send message/i }));
 
     expect(screen.getByText("What causes low iron?")).toBeInTheDocument();
     await waitFor(() =>
@@ -130,7 +137,7 @@ describe("chat shell", () => {
 
     render(<ChatShell />);
 
-    const textarea = screen.getByLabelText(/your medical question/i);
+    const textarea = screen.getByPlaceholderText(composerPlaceholder);
 
     await user.type(textarea, "What causes low iron?");
     fireEvent.keyDown(textarea, {
@@ -193,10 +200,10 @@ describe("chat shell", () => {
 
     render(<ChatShell />);
 
-    fireEvent.change(screen.getByLabelText(/your medical question/i), {
+    fireEvent.change(screen.getByPlaceholderText(composerPlaceholder), {
       target: { value: "Can dehydration cause dizziness?" },
     });
-    fireEvent.click(screen.getByRole("button", { name: /send/i }));
+    fireEvent.click(screen.getByRole("button", { name: /send message/i }));
 
     expect(screen.getByRole("status")).toHaveTextContent(
       /drafting a medical response/i
@@ -472,6 +479,15 @@ describe("chat shell", () => {
     expect(screen.getByRole("menu", { name: /profile menu/i })).toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: /profile/i })).toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: /logout/i })).toBeInTheDocument();
+  });
+
+  it("signs out from the profile menu", async () => {
+    render(<ChatShell />);
+
+    fireEvent.click(screen.getByRole("button", { name: /demo user/i }));
+    fireEvent.click(screen.getByRole("menuitem", { name: /logout/i }));
+
+    expect(signOut).toHaveBeenCalledWith({ callbackUrl: "/sign-in" });
   });
 
   it("starts a new chat from the sidebar action", async () => {

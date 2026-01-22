@@ -5,6 +5,20 @@ import { createChatSession } from "@/server/chat-service";
 import { MAX_MESSAGE_LENGTH } from "@/server/validation";
 import { disconnectDatabase, resetDatabase } from "../support/database";
 
+vi.mock("@/server/auth", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/server/auth")>();
+
+  return {
+    ...actual,
+    getServerAuthSession: vi.fn(async () => ({
+      user: {
+        name: "Demo User",
+        email: "demo@docbot.ai",
+      },
+    })),
+  };
+});
+
 describe("chat message route", () => {
   const originalFetch = global.fetch;
 
@@ -204,6 +218,31 @@ describe("chat message route", () => {
     );
 
     expect(response.status).toBe(400);
+  });
+
+  it("rejects unauthenticated message posting", async () => {
+    const { getServerAuthSession } = await import("@/server/auth");
+    const chat = await createChatSession();
+
+    vi.mocked(getServerAuthSession).mockResolvedValueOnce(null);
+
+    const response = await POST(
+      new Request("http://localhost/api/chats/messages", {
+        method: "POST",
+        body: JSON.stringify({
+          content: "My blood pressure is 150/95. Is that bad?",
+        }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }),
+      {
+        params: Promise.resolve({ chatId: chat.id }),
+      }
+    );
+
+    expect(response.status).toBe(401);
+    expect(global.fetch).not.toHaveBeenCalled();
   });
 
   it("rate limits repeated rapid submissions", async () => {

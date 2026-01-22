@@ -3,6 +3,20 @@ import { MAX_CHAT_TITLE_LENGTH } from "@/server/validation";
 import { createChatSession } from "@/server/chat-service";
 import { disconnectDatabase, resetDatabase } from "../support/database";
 
+vi.mock("@/server/auth", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/server/auth")>();
+
+  return {
+    ...actual,
+    getServerAuthSession: vi.fn(async () => ({
+      user: {
+        name: "Demo User",
+        email: "demo@docbot.ai",
+      },
+    })),
+  };
+});
+
 describe("chat list route", () => {
   beforeEach(async () => {
     await resetDatabase();
@@ -60,5 +74,15 @@ describe("chat list route", () => {
     );
 
     expect(response.status).toBe(400);
+  });
+
+  it("rejects unauthenticated chat list access", async () => {
+    const { getServerAuthSession } = await import("@/server/auth");
+
+    vi.mocked(getServerAuthSession).mockResolvedValueOnce(null);
+
+    const response = await GET();
+
+    expect(response.status).toBe(401);
   });
 });
