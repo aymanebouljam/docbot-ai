@@ -12,6 +12,9 @@ const globalForTests = globalThis as typeof globalThis & {
 };
 
 process.env.DATABASE_URL = TEST_DATABASE_URL;
+process.env.NEXTAUTH_SECRET = "test-nextauth-secret";
+process.env.AUTH_EMAIL = "demo@docbot.ai";
+process.env.AUTH_PASSWORD = "docbot-demo-password";
 
 if (!globalForTests.databasePrepared) {
   fs.rmSync(TEST_DATABASE_PATH, { force: true });
