@@ -27,3 +27,8 @@ export type Chat = Prisma.ChatModel
  * 
  */
 export type Message = Prisma.MessageModel
+/**
+ * Model User
+ * 
+ */
+export type User = Prisma.UserModel
