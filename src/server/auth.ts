@@ -2,8 +2,7 @@ import type { NextAuthOptions } from "next-auth";
 import { getServerSession } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 
-const DEFAULT_AUTH_EMAIL = "demo@docbot.ai";
-const DEFAULT_AUTH_PASSWORD = "docbot-demo-password";
+import { authenticateUser } from "@/server/user-service";
 
 export const authOptions: NextAuthOptions = {
   session: {
@@ -19,32 +18,39 @@ export const authOptions: NextAuthOptions = {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
-      authorize(credentials) {
-        const configuredEmail = process.env.AUTH_EMAIL ?? DEFAULT_AUTH_EMAIL;
-        const configuredPassword =
-          process.env.AUTH_PASSWORD ?? DEFAULT_AUTH_PASSWORD;
+      async authorize(credentials) {
         const email = credentials?.email?.trim().toLowerCase();
         const password = credentials?.password;
 
-        if (email !== configuredEmail.toLowerCase()) {
+        if (!email || !password) {
           return null;
         }
 
-        if (password !== configuredPassword) {
+        const user = await authenticateUser({ email, password });
+
+        if (!user) {
           return null;
         }
 
         return {
-          id: "docbot-demo-user",
-          name: "Demo User",
-          email: configuredEmail,
+          id: user.id,
+          name: user.name,
+          email: user.email,
         };
       },
     }),
   ],
   callbacks: {
+    jwt({ token, user }) {
+      if (user) {
+        token.userId = user.id;
+      }
+
+      return token;
+    },
     session({ session, token }) {
       if (session.user) {
+        session.user.id = token.userId ?? token.sub ?? "";
         session.user.name = token.name ?? session.user.name;
         session.user.email = token.email ?? session.user.email;
       }
@@ -60,4 +66,19 @@ export function getServerAuthSession() {
 
 export function createUnauthorizedResponse() {
   return Response.json({ error: "Unauthorized." }, { status: 401 });
+}
+
+export async function getAuthenticatedUser() {
+  const session = await getServerAuthSession();
+  const userId = session?.user?.id;
+
+  if (!userId) {
+    return null;
+  }
+
+  return {
+    id: userId,
+    name: session.user.name ?? null,
+    email: session.user.email ?? null,
+  };
 }
