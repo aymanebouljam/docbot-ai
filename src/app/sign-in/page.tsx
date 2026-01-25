@@ -23,7 +23,7 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
   return (
     <AuthShell
       title="Log in"
-      description="Continue to DocBot and pick up your medical conversations where you left off."
+      description="Pick up your medical conversations."
     >
         <SignInForm
           callbackUrl={callbackUrl && callbackUrl.startsWith("/") ? callbackUrl : "/"}

@@ -14,7 +14,7 @@ export default async function RegisterPage() {
   return (
     <AuthShell
       title="Create your account"
-      description="Set up your DocBot access with a clean, minimal authentication flow."
+      description="Start your medical conversations with DocBot."
     >
       <RegisterForm />
     </AuthShell>
