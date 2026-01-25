@@ -4,13 +4,8 @@ import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { signIn } from "next-auth/react";
 
-type SignInFormProps = {
-  callbackUrl: string;
-};
-
-export function SignInForm({
-  callbackUrl,
-}: SignInFormProps) {
+export function RegisterForm() {
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -21,50 +16,85 @@ export function SignInForm({
     setIsSubmitting(true);
     setErrorMessage(null);
 
-    const result = await signIn("credentials", {
-      email,
-      password,
-      callbackUrl,
-      redirect: true,
+    const response = await fetch("/api/register", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name,
+        email,
+        password,
+      }),
     });
 
-    if (result?.error) {
-      setErrorMessage("The email or password is incorrect.");
+    if (!response.ok) {
+      const payload = (await response.json().catch(() => null)) as
+        | { error?: string }
+        | null;
+
+      setErrorMessage(
+        payload?.error ?? "Unable to create your account right now."
+      );
       setIsSubmitting(false);
+      return;
     }
+
+    await signIn("credentials", {
+      email,
+      password,
+      callbackUrl: "/",
+      redirect: true,
+    });
   }
 
   return (
     <form onSubmit={handleSubmit}>
       <div className="space-y-3">
         <div>
-          <label className="sr-only" htmlFor="email">
-            Email
+          <label className="sr-only" htmlFor="name">
+            Full name
           </label>
           <input
-            id="email"
-            type="email"
+            id="name"
+            type="text"
             className="w-full rounded-full border border-black/10 bg-white px-4 py-3 text-sm text-[#111827] outline-none transition placeholder:text-[#9ca3af] focus:border-[#111827]"
-            placeholder="Email address"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            autoComplete="email"
+            placeholder="Full name"
+            autoComplete="name"
+            value={name}
+            onChange={(event) => setName(event.target.value)}
             required
           />
         </div>
 
         <div>
-          <label className="sr-only" htmlFor="password">
+          <label className="sr-only" htmlFor="register-email">
+            Email
+          </label>
+          <input
+            id="register-email"
+            type="email"
+            className="w-full rounded-full border border-black/10 bg-white px-4 py-3 text-sm text-[#111827] outline-none transition placeholder:text-[#9ca3af] focus:border-[#111827]"
+            placeholder="Email address"
+            autoComplete="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            required
+          />
+        </div>
+
+        <div>
+          <label className="sr-only" htmlFor="register-password">
             Password
           </label>
           <input
-            id="password"
+            id="register-password"
             type="password"
             className="w-full rounded-full border border-black/10 bg-white px-4 py-3 text-sm text-[#111827] outline-none transition placeholder:text-[#9ca3af] focus:border-[#111827]"
             placeholder="Password"
+            autoComplete="new-password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
-            autoComplete="current-password"
             required
           />
         </div>
@@ -81,19 +111,15 @@ export function SignInForm({
         className="mt-5 w-full rounded-full bg-[#111827] px-4 py-3 text-sm font-medium text-white transition hover:bg-black disabled:cursor-not-allowed disabled:bg-[#9ca3af]"
         disabled={isSubmitting}
       >
-        {isSubmitting ? "Logging in..." : "Log in"}
+        {isSubmitting ? "Creating account..." : "Continue"}
       </button>
 
       <Link
         className="mt-3 flex w-full items-center justify-center rounded-full border border-black/10 px-4 py-3 text-sm font-medium text-[#111827] transition hover:border-black/20 hover:bg-black/[0.03]"
-        href="/register"
+        href="/sign-in"
       >
-        Sign up for free
+        Log in
       </Link>
-
-      <p className="mt-5 text-center text-xs leading-5 text-[#6b7280]">
-        Use the account you created to access your private medical workspace.
-      </p>
     </form>
   );
 }
