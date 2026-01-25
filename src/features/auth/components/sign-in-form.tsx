@@ -78,7 +78,7 @@ export function SignInForm({
 
       <button
         type="submit"
-        className="mt-5 w-full rounded-full bg-[#111827] px-4 py-3 text-sm font-medium text-white transition hover:bg-black disabled:cursor-not-allowed disabled:bg-[#9ca3af]"
+        className="mt-5 w-full rounded-full bg-emerald-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-[#9ca3af]"
         disabled={isSubmitting}
       >
         {isSubmitting ? "Logging in..." : "Log in"}
