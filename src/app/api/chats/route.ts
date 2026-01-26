@@ -1,7 +1,7 @@
 import { createChatSession, loadChatList } from "@/server/chat-service";
 import {
   createUnauthorizedResponse,
-  getServerAuthSession,
+  getAuthenticatedUser,
 } from "@/server/auth";
 import {
   createChatRequestSchema,
@@ -9,9 +9,9 @@ import {
 } from "@/server/validation";
 
 export async function POST(request: Request) {
-  const session = await getServerAuthSession();
+  const user = await getAuthenticatedUser();
 
-  if (!session) {
+  if (!user) {
     return createUnauthorizedResponse();
   }
 
@@ -25,19 +25,19 @@ export async function POST(request: Request) {
     );
   }
 
-  const chat = await createChatSession(parsedBody.data.title);
+  const chat = await createChatSession(user.id, parsedBody.data.title);
 
   return Response.json({ chat }, { status: 201 });
 }
 
 export async function GET() {
-  const session = await getServerAuthSession();
+  const user = await getAuthenticatedUser();
 
-  if (!session) {
+  if (!user) {
     return createUnauthorizedResponse();
   }
 
-  const chats = await loadChatList();
+  const chats = await loadChatList(user.id);
 
   return Response.json({ chats });
 }

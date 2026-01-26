@@ -3,7 +3,7 @@ import { generateMedicalAnswer } from "@/server/groq";
 import { checkRateLimit } from "@/server/rate-limit";
 import {
   createUnauthorizedResponse,
-  getServerAuthSession,
+  getAuthenticatedUser,
 } from "@/server/auth";
 import {
   createMessageRequestSchema,
@@ -15,9 +15,9 @@ type ChatMessagesRouteContext = {
 };
 
 export async function POST(request: Request, context: ChatMessagesRouteContext) {
-  const session = await getServerAuthSession();
+  const user = await getAuthenticatedUser();
 
-  if (!session) {
+  if (!user) {
     return createUnauthorizedResponse();
   }
 
@@ -49,6 +49,7 @@ export async function POST(request: Request, context: ChatMessagesRouteContext) 
   }
 
   const result = await processUserMessage({
+    userId: user.id,
     chatId,
     content: parsedBody.data.content,
     generateMedicalReply: async ({ content, history }) =>

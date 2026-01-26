@@ -1,7 +1,7 @@
 import { loadChat } from "@/server/chat-service";
 import {
   createUnauthorizedResponse,
-  getServerAuthSession,
+  getAuthenticatedUser,
 } from "@/server/auth";
 
 type ChatRouteContext = {
@@ -9,14 +9,14 @@ type ChatRouteContext = {
 };
 
 export async function GET(_request: Request, context: ChatRouteContext) {
-  const session = await getServerAuthSession();
+  const user = await getAuthenticatedUser();
 
-  if (!session) {
+  if (!user) {
     return createUnauthorizedResponse();
   }
 
   const { chatId } = await context.params;
-  const chat = await loadChat(chatId);
+  const chat = await loadChat(user.id, chatId);
 
   if (!chat) {
     return Response.json({ error: "Chat not found." }, { status: 404 });
