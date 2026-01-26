@@ -6,27 +6,28 @@ import {
 import { assessMedicalSafety } from "@/features/medical-safety/checker";
 import { buildUrgentMedicalResponse } from "@/features/medical-safety/response";
 import { MessageRole } from "@/generated/prisma/enums";
-import type { MedicalContextMessage } from "@/server/groq";
 import { buildChatTitleFromMessage } from "@/server/chat-title";
-import { normalizeStoredContent } from "@/server/validation";
-
+import type { MedicalContextMessage } from "@/server/groq";
 import {
   createChat,
   getChatById,
   listChats,
   saveMessage,
-  type ChatWithMessages,
   type ChatListItem,
+  type ChatWithMessages,
   updateChatTitle,
 } from "@/server/chat-repository";
+import { normalizeStoredContent } from "@/server/validation";
 
-export async function createChatSession(title?: string) {
+export async function createChatSession(userId: string, title?: string) {
   return createChat({
+    userId,
     title: title ? normalizeStoredContent(title) : undefined,
   });
 }
 
 export async function addMessageToChat(input: {
+  userId: string;
   chatId: string;
   content: string;
   role: MessageRole;
@@ -39,14 +40,20 @@ export async function addMessageToChat(input: {
   }
 
   return saveMessage({
+    userId: input.userId,
     chatId: input.chatId,
     role: input.role,
     content: normalizedContent,
   });
 }
 
-export async function addUserMessageToChat(chatId: string, content: string) {
+export async function addUserMessageToChat(
+  userId: string,
+  chatId: string,
+  content: string
+) {
   return addMessageToChat({
+    userId,
     chatId,
     content,
     role: MessageRole.user,
@@ -60,18 +67,23 @@ type MedicalReplyGenerator = (input: {
 }) => Promise<string>;
 
 export async function processUserMessage(input: {
+  userId: string;
   chatId: string;
   content: string;
   generateMedicalReply?: MedicalReplyGenerator;
 }) {
   const trimmedContent = input.content.trim();
-  const userMessage = await addUserMessageToChat(input.chatId, trimmedContent);
+  const userMessage = await addUserMessageToChat(
+    input.userId,
+    input.chatId,
+    trimmedContent
+  );
 
   if (!userMessage) {
     return null;
   }
 
-  const chatAfterUserMessage = await getChatById(input.chatId);
+  const chatAfterUserMessage = await getChatById(input.chatId, input.userId);
 
   if (!chatAfterUserMessage) {
     return null;
@@ -83,6 +95,7 @@ export async function processUserMessage(input: {
 
   if (!chatAfterUserMessage.title && userMessages.length === 1) {
     await updateChatTitle({
+      userId: input.userId,
       chatId: input.chatId,
       title: buildChatTitleFromMessage(trimmedContent),
     });
@@ -93,6 +106,7 @@ export async function processUserMessage(input: {
   if (isBlockedDomainClassification(classification)) {
     const fallback = buildDomainFallbackResponse(classification);
     const assistantMessage = await addMessageToChat({
+      userId: input.userId,
       chatId: input.chatId,
       content: fallback.content,
       role: MessageRole.assistant,
@@ -111,6 +125,7 @@ export async function processUserMessage(input: {
   if (safetyAssessment.level === "urgent") {
     const urgentResponse = buildUrgentMedicalResponse();
     const assistantMessage = await addMessageToChat({
+      userId: input.userId,
       chatId: input.chatId,
       content: urgentResponse,
       role: MessageRole.assistant,
@@ -154,6 +169,7 @@ export async function processUserMessage(input: {
     });
 
     const assistantMessage = await addMessageToChat({
+      userId: input.userId,
       chatId: input.chatId,
       content: medicalReply,
       role: MessageRole.assistant,
@@ -168,6 +184,7 @@ export async function processUserMessage(input: {
     };
   } catch {
     const assistantMessage = await addMessageToChat({
+      userId: input.userId,
       chatId: input.chatId,
       content:
         "I'm having trouble generating a medical response right now. Please try again in a moment.",
@@ -184,10 +201,13 @@ export async function processUserMessage(input: {
   }
 }
 
-export async function loadChat(chatId: string): Promise<ChatWithMessages | null> {
-  return getChatById(chatId);
+export async function loadChat(
+  userId: string,
+  chatId: string
+): Promise<ChatWithMessages | null> {
+  return getChatById(chatId, userId);
 }
 
-export async function loadChatList(): Promise<ChatListItem[]> {
-  return listChats();
+export async function loadChatList(userId: string): Promise<ChatListItem[]> {
+  return listChats(userId);
 }
