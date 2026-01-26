@@ -580,7 +580,7 @@ export function ChatShell({
               <div className="relative">
                 <button
                   type="button"
-                  aria-label="Demo user settings"
+                  aria-label={`${currentUserName ?? "Your account"} settings`}
                   className={`flex rounded-[1.5rem] border border-base-200 bg-base-100 text-left transition hover:border-emerald-200 hover:bg-emerald-50 ${
                     isSidebarCollapsed
                       ? "w-full justify-center px-2 py-3"
@@ -598,10 +598,10 @@ export function ChatShell({
                   {!isSidebarCollapsed ? (
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium">
-                        {currentUserName ?? "Demo User"}
+                        {currentUserName ?? "Your account"}
                       </p>
                       <p className="truncate text-xs text-base-content/45">
-                        {currentUserEmail ?? "demo@docbot.ai"}
+                        {currentUserEmail ?? "Signed in"}
                       </p>
                     </div>
                   ) : null}
