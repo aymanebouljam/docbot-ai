@@ -1,7 +1,9 @@
 import {
   createMessageRequestSchema,
+  MIN_PASSWORD_LENGTH,
   MAX_MESSAGE_LENGTH,
   normalizeStoredContent,
+  registerUserRequestSchema,
 } from "@/server/validation";
 
 describe("request validation", () => {
@@ -25,5 +27,25 @@ describe("request validation", () => {
     expect(normalizeStoredContent("  blood   pressure \r\n high  ")).toBe(
       "blood pressure\nhigh"
     );
+  });
+
+  it("validates registration payloads", () => {
+    const result = registerUserRequestSchema.safeParse({
+      name: "Dr Test",
+      email: "doctor@example.com",
+      password: "securepass123",
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("enforces the minimum registration password length", () => {
+    const result = registerUserRequestSchema.safeParse({
+      name: "Dr Test",
+      email: "doctor@example.com",
+      password: "a".repeat(MIN_PASSWORD_LENGTH - 1),
+    });
+
+    expect(result.success).toBe(false);
   });
 });

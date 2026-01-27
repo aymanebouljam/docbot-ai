@@ -1,18 +1,21 @@
 import { GET, POST } from "@/app/api/chats/route";
 import { MAX_CHAT_TITLE_LENGTH } from "@/server/validation";
 import { createChatSession } from "@/server/chat-service";
-import { disconnectDatabase, resetDatabase } from "../support/database";
+import {
+  createTestUser,
+  disconnectDatabase,
+  resetDatabase,
+} from "../support/database";
 
 vi.mock("@/server/auth", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/server/auth")>();
 
   return {
     ...actual,
-    getServerAuthSession: vi.fn(async () => ({
-      user: {
-        name: "Demo User",
-        email: "demo@docbot.ai",
-      },
+    getAuthenticatedUser: vi.fn(async () => ({
+      id: "test-user-id",
+      name: "Test User",
+      email: "user@example.com",
     })),
   };
 });
@@ -27,8 +30,12 @@ describe("chat list route", () => {
   });
 
   it("returns chats ordered newest first", async () => {
-    const firstChat = await createChatSession("Earlier chat");
-    const secondChat = await createChatSession("Later chat");
+    const { user } = await createTestUser({
+      id: "test-user-id",
+      email: "user@example.com",
+    });
+    const firstChat = await createChatSession(user.id, "Earlier chat");
+    const secondChat = await createChatSession(user.id, "Later chat");
 
     expect(firstChat.id).not.toBe(secondChat.id);
 
@@ -77,9 +84,9 @@ describe("chat list route", () => {
   });
 
   it("rejects unauthenticated chat list access", async () => {
-    const { getServerAuthSession } = await import("@/server/auth");
+    const { getAuthenticatedUser } = await import("@/server/auth");
 
-    vi.mocked(getServerAuthSession).mockResolvedValueOnce(null);
+    vi.mocked(getAuthenticatedUser).mockResolvedValueOnce(null);
 
     const response = await GET();
 

@@ -3,18 +3,21 @@ import { resetRateLimitStore } from "@/server/rate-limit";
 import { getChatById } from "@/server/chat-repository";
 import { createChatSession } from "@/server/chat-service";
 import { MAX_MESSAGE_LENGTH } from "@/server/validation";
-import { disconnectDatabase, resetDatabase } from "../support/database";
+import {
+  createTestUser,
+  disconnectDatabase,
+  resetDatabase,
+} from "../support/database";
 
 vi.mock("@/server/auth", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/server/auth")>();
 
   return {
     ...actual,
-    getServerAuthSession: vi.fn(async () => ({
-      user: {
-        name: "Demo User",
-        email: "demo@docbot.ai",
-      },
+    getAuthenticatedUser: vi.fn(async () => ({
+      id: "test-user-id",
+      name: "Test User",
+      email: "user@example.com",
     })),
   };
 });
@@ -49,7 +52,11 @@ describe("chat message route", () => {
   });
 
   it("persists a posted user message", async () => {
-    const chat = await createChatSession();
+    const { user } = await createTestUser({
+      id: "test-user-id",
+      email: "user@example.com",
+    });
+    const chat = await createChatSession(user.id);
 
     const response = await POST(
       new Request("http://localhost/api/chats/messages", {
@@ -68,7 +75,7 @@ describe("chat message route", () => {
 
     expect(response.status).toBe(201);
 
-    const persistedChat = await getChatById(chat.id);
+    const persistedChat = await getChatById(chat.id, user.id);
 
     expect(persistedChat?.messages).toHaveLength(2);
     expect(persistedChat?.messages[0]?.content).toBe(
@@ -80,7 +87,11 @@ describe("chat message route", () => {
   });
 
   it("stores a gentle fallback assistant reply for non-medical prompts", async () => {
-    const chat = await createChatSession();
+    const { user } = await createTestUser({
+      id: "test-user-id",
+      email: "user@example.com",
+    });
+    const chat = await createChatSession(user.id);
 
     const response = await POST(
       new Request("http://localhost/api/chats/messages", {
@@ -103,7 +114,7 @@ describe("chat message route", () => {
       classification: string;
       suggestedPrompts: string[];
     };
-    const persistedChat = await getChatById(chat.id);
+    const persistedChat = await getChatById(chat.id, user.id);
 
     expect(responseBody.classification).toBe("non_medical");
     expect(responseBody.suggestedPrompts).toHaveLength(3);
@@ -118,7 +129,11 @@ describe("chat message route", () => {
   });
 
   it("stores urgent safety guidance for red-flag prompts", async () => {
-    const chat = await createChatSession();
+    const { user } = await createTestUser({
+      id: "test-user-id",
+      email: "user@example.com",
+    });
+    const chat = await createChatSession(user.id);
 
     const response = await POST(
       new Request("http://localhost/api/chats/messages", {
@@ -140,7 +155,7 @@ describe("chat message route", () => {
     const responseBody = (await response.json()) as {
       safetyLevel: string;
     };
-    const persistedChat = await getChatById(chat.id);
+    const persistedChat = await getChatById(chat.id, user.id);
 
     expect(responseBody.safetyLevel).toBe("urgent");
     expect(persistedChat?.messages).toHaveLength(2);
@@ -151,7 +166,11 @@ describe("chat message route", () => {
   });
 
   it("stores urgent crisis-safe guidance for suicidal wording", async () => {
-    const chat = await createChatSession();
+    const { user } = await createTestUser({
+      id: "test-user-id",
+      email: "user@example.com",
+    });
+    const chat = await createChatSession(user.id);
 
     const response = await POST(
       new Request("http://localhost/api/chats/messages", {
@@ -170,7 +189,7 @@ describe("chat message route", () => {
 
     expect(response.status).toBe(201);
 
-    const persistedChat = await getChatById(chat.id);
+    const persistedChat = await getChatById(chat.id, user.id);
 
     expect(persistedChat?.messages[1]?.content).toMatch(
       /seek immediate medical care now/i
@@ -179,7 +198,11 @@ describe("chat message route", () => {
   });
 
   it("rejects invalid message payloads with a 400 status", async () => {
-    const chat = await createChatSession();
+    const { user } = await createTestUser({
+      id: "test-user-id",
+      email: "user@example.com",
+    });
+    const chat = await createChatSession(user.id);
 
     const response = await POST(
       new Request("http://localhost/api/chats/messages", {
@@ -200,7 +223,11 @@ describe("chat message route", () => {
   });
 
   it("rejects overly long message payloads with a 400 status", async () => {
-    const chat = await createChatSession();
+    const { user } = await createTestUser({
+      id: "test-user-id",
+      email: "user@example.com",
+    });
+    const chat = await createChatSession(user.id);
 
     const response = await POST(
       new Request("http://localhost/api/chats/messages", {
@@ -221,10 +248,14 @@ describe("chat message route", () => {
   });
 
   it("rejects unauthenticated message posting", async () => {
-    const { getServerAuthSession } = await import("@/server/auth");
-    const chat = await createChatSession();
+    const { getAuthenticatedUser } = await import("@/server/auth");
+    const { user } = await createTestUser({
+      id: "test-user-id",
+      email: "user@example.com",
+    });
+    const chat = await createChatSession(user.id);
 
-    vi.mocked(getServerAuthSession).mockResolvedValueOnce(null);
+    vi.mocked(getAuthenticatedUser).mockResolvedValueOnce(null);
 
     const response = await POST(
       new Request("http://localhost/api/chats/messages", {
@@ -246,7 +277,11 @@ describe("chat message route", () => {
   });
 
   it("rate limits repeated rapid submissions", async () => {
-    const chat = await createChatSession();
+    const { user } = await createTestUser({
+      id: "test-user-id",
+      email: "user@example.com",
+    });
+    const chat = await createChatSession(user.id);
 
     for (let attempt = 0; attempt < 5; attempt += 1) {
       const response = await POST(
