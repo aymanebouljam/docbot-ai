@@ -1,6 +1,10 @@
 import { processUserMessage } from "@/server/chat-service";
 import { createChat, getChatById } from "@/server/chat-repository";
-import { disconnectDatabase, resetDatabase } from "../support/database";
+import {
+  createTestUser,
+  disconnectDatabase,
+  resetDatabase,
+} from "../support/database";
 
 describe("chat service domain gating", () => {
   beforeEach(async () => {
@@ -12,10 +16,12 @@ describe("chat service domain gating", () => {
   });
 
   it("does not call the medical reply generator for a non-medical prompt", async () => {
-    const chat = await createChat();
+    const { user } = await createTestUser();
+    const chat = await createChat({ userId: user.id });
     const generateMedicalReply = vi.fn(async () => "This should not run");
 
     const result = await processUserMessage({
+      userId: user.id,
       chatId: chat.id,
       content: "Write a SQL query for monthly revenue",
       generateMedicalReply,
@@ -29,12 +35,14 @@ describe("chat service domain gating", () => {
   });
 
   it("calls the medical reply generator for a medical prompt", async () => {
-    const chat = await createChat();
+    const { user } = await createTestUser();
+    const chat = await createChat({ userId: user.id });
     const generateMedicalReply = vi.fn(
       async () => "A fever can happen with many infections."
     );
 
     const result = await processUserMessage({
+      userId: user.id,
       chatId: chat.id,
       content: "What causes a fever?",
       generateMedicalReply,
@@ -46,9 +54,11 @@ describe("chat service domain gating", () => {
   });
 
   it("passes prior chat context to the medical reply generator for follow-up questions", async () => {
-    const chat = await createChat();
+    const { user } = await createTestUser();
+    const chat = await createChat({ userId: user.id });
 
     await processUserMessage({
+      userId: user.id,
       chatId: chat.id,
       content: "I have had a fever for two days",
       generateMedicalReply: vi.fn(async () => "Fever can happen with infections."),
@@ -59,6 +69,7 @@ describe("chat service domain gating", () => {
     );
 
     await processUserMessage({
+      userId: user.id,
       chatId: chat.id,
       content: "Now I also have a cough and fever. Could that be an infection?",
       generateMedicalReply,
@@ -83,12 +94,14 @@ describe("chat service domain gating", () => {
   });
 
   it("stores a graceful assistant error when medical generation fails", async () => {
-    const chat = await createChat();
+    const { user } = await createTestUser();
+    const chat = await createChat({ userId: user.id });
     const generateMedicalReply = vi.fn(async () => {
       throw new Error("Groq unavailable");
     });
 
     const result = await processUserMessage({
+      userId: user.id,
       chatId: chat.id,
       content: "What does high cholesterol mean?",
       generateMedicalReply,
@@ -102,12 +115,14 @@ describe("chat service domain gating", () => {
   });
 
   it("does not call the medical reply generator for urgent prompts", async () => {
-    const chat = await createChat();
+    const { user } = await createTestUser();
+    const chat = await createChat({ userId: user.id });
     const generateMedicalReply = vi.fn(
       async () => "This should not run for urgent cases"
     );
 
     const result = await processUserMessage({
+      userId: user.id,
       chatId: chat.id,
       content: "I have crushing chest pain and can't breathe",
       generateMedicalReply,
@@ -121,9 +136,11 @@ describe("chat service domain gating", () => {
   });
 
   it("blocks a non-medical follow-up even inside an existing medical chat", async () => {
-    const chat = await createChat();
+    const { user } = await createTestUser();
+    const chat = await createChat({ userId: user.id });
 
     await processUserMessage({
+      userId: user.id,
       chatId: chat.id,
       content: "What causes low iron?",
       generateMedicalReply: vi.fn(async () => "Low iron is often caused by blood loss."),
@@ -132,6 +149,7 @@ describe("chat service domain gating", () => {
     const generateMedicalReply = vi.fn(async () => "This should not run");
 
     const result = await processUserMessage({
+      userId: user.id,
       chatId: chat.id,
       content: "Who won the game yesterday?",
       generateMedicalReply,
@@ -145,9 +163,11 @@ describe("chat service domain gating", () => {
   });
 
   it("generates and saves a title from the first user message", async () => {
-    const chat = await createChat();
+    const { user } = await createTestUser();
+    const chat = await createChat({ userId: user.id });
 
     await processUserMessage({
+      userId: user.id,
       chatId: chat.id,
       content: "What causes persistent dizziness when I stand up?",
       generateMedicalReply: vi.fn(
@@ -155,7 +175,7 @@ describe("chat service domain gating", () => {
       ),
     });
 
-    const persistedChat = await getChatById(chat.id);
+    const persistedChat = await getChatById(chat.id, user.id);
 
     expect(persistedChat?.title).toBe(
       "What causes persistent dizziness when I stand up"
@@ -163,9 +183,11 @@ describe("chat service domain gating", () => {
   });
 
   it("normalizes stored user content before persistence", async () => {
-    const chat = await createChat();
+    const { user } = await createTestUser();
+    const chat = await createChat({ userId: user.id });
 
     const result = await processUserMessage({
+      userId: user.id,
       chatId: chat.id,
       content: "  What   causes   a fever?  ",
       generateMedicalReply: vi.fn(async () => "Many infections can cause fever."),

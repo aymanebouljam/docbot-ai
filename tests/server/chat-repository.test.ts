@@ -6,7 +6,11 @@ import {
   getChatById,
   saveMessage,
 } from "@/server/chat-repository";
-import { disconnectDatabase, resetDatabase } from "../support/database";
+import {
+  createTestUser,
+  disconnectDatabase,
+  resetDatabase,
+} from "../support/database";
 
 describe("chat repository", () => {
   beforeEach(async () => {
@@ -18,16 +22,23 @@ describe("chat repository", () => {
   });
 
   it("creates a chat", async () => {
-    const chat = await createChat({ title: "Anemia questions" });
+    const { user } = await createTestUser();
+    const chat = await createChat({
+      userId: user.id,
+      title: "Anemia questions",
+    });
 
     expect(chat.id).toEqual(expect.any(String));
     expect(chat.title).toBe("Anemia questions");
+    expect(chat.userId).toBe(user.id);
   });
 
   it("saves a message", async () => {
-    const chat = await createChat();
+    const { user } = await createTestUser();
+    const chat = await createChat({ userId: user.id });
 
     const message = await saveMessage({
+      userId: user.id,
       chatId: chat.id,
       role: MessageRole.user,
       content: "What are the symptoms of anemia?",
@@ -39,20 +50,23 @@ describe("chat repository", () => {
   });
 
   it("fetches a chat with messages ordered oldest to newest", async () => {
-    const chat = await createChat();
+    const { user } = await createTestUser();
+    const chat = await createChat({ userId: user.id });
 
     const firstMessage = await saveMessage({
+      userId: user.id,
       chatId: chat.id,
       role: MessageRole.user,
       content: "First question",
     });
     const secondMessage = await saveMessage({
+      userId: user.id,
       chatId: chat.id,
       role: MessageRole.assistant,
       content: "Second answer",
     });
 
-    const persistedChat = await getChatById(chat.id);
+    const persistedChat = await getChatById(chat.id, user.id);
 
     expect(persistedChat?.messages.map((message) => message.id)).toEqual([
       firstMessage?.id,
@@ -62,17 +76,19 @@ describe("chat repository", () => {
 
   it("deletes related messages when a chat is deleted", async () => {
     const prisma = getPrismaClient();
-    const chat = await createChat();
+    const { user } = await createTestUser();
+    const chat = await createChat({ userId: user.id });
 
     await saveMessage({
+      userId: user.id,
       chatId: chat.id,
       role: MessageRole.user,
       content: "Delete me with the chat",
     });
 
-    await deleteChat(chat.id);
+    await deleteChat(chat.id, user.id);
 
-    const persistedChat = await getChatById(chat.id);
+    const persistedChat = await getChatById(chat.id, user.id);
     const messageCount = await prisma.message.count({
       where: { chatId: chat.id },
     });
