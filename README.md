@@ -16,12 +16,11 @@ DocBot AI is a medical-only chatbot built with Next.js, TypeScript, Tailwind CSS
 1. Install dependencies with `pnpm install`.
 2. Copy `.env.example` to `.env`.
 3. Set `GROQ_API_KEY`, `NEXTAUTH_SECRET`, and optionally `GROQ_MODEL`.
-4. Optionally customize `AUTH_EMAIL` and `AUTH_PASSWORD` for the demo login.
-5. Generate Prisma client with `pnpm prisma:generate`.
-6. Run the local SQLite migration with `pnpm prisma:migrate`.
-7. Start the app with `pnpm dev`.
-8. Open `http://localhost:3000`.
-9. Sign in with the configured credentials.
+4. Generate Prisma client with `pnpm prisma:generate`.
+5. Run the local SQLite migration with `pnpm prisma:migrate`.
+6. Start the app with `pnpm dev`.
+7. Open `http://localhost:3000`.
+8. Create an account from the registration screen, then sign in.
 
 ## Testing
 
