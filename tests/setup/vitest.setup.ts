@@ -3,8 +3,10 @@ import Database from "better-sqlite3";
 import fs from "node:fs";
 import path from "node:path";
 
-const TEST_DATABASE_URL = "file:./test.db";
-const TEST_DATABASE_PATH = path.join(process.cwd(), "test.db");
+const TEST_DATABASE_SUFFIX = process.env.VITEST_WORKER_ID ?? "0";
+const TEST_DATABASE_FILENAME = `test-${TEST_DATABASE_SUFFIX}.db`;
+const TEST_DATABASE_URL = `file:./${TEST_DATABASE_FILENAME}`;
+const TEST_DATABASE_PATH = path.join(process.cwd(), TEST_DATABASE_FILENAME);
 const MIGRATIONS_PATH = path.join(process.cwd(), "prisma", "migrations");
 
 const globalForTests = globalThis as typeof globalThis & {
