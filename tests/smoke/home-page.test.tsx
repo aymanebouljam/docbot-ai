@@ -5,8 +5,9 @@ import Home from "@/app/page";
 vi.mock("@/server/auth", () => ({
   getServerAuthSession: vi.fn(async () => ({
     user: {
-      name: "Demo User",
-      email: "demo@docbot.ai",
+      id: "test-user-id",
+      name: "Test User",
+      email: "user@example.com",
     },
   })),
 }));
@@ -41,7 +42,7 @@ describe("home page", () => {
     expect(screen.getByRole("heading", { name: /docbot/i })).toBeInTheDocument();
 
     await waitFor(() =>
-      expect(screen.getByText(/demo user/i)).toBeInTheDocument()
+      expect(screen.getByText(/test user/i)).toBeInTheDocument()
     );
   });
 });

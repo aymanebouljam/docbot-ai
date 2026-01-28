@@ -474,7 +474,7 @@ describe("chat shell", () => {
   it("shows the profile menu from the settings button", async () => {
     render(<ChatShell />);
 
-    fireEvent.click(screen.getByRole("button", { name: /demo user/i }));
+    fireEvent.click(screen.getByRole("button", { name: /your account/i }));
 
     expect(screen.getByRole("menu", { name: /profile menu/i })).toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: /profile/i })).toBeInTheDocument();
@@ -484,7 +484,7 @@ describe("chat shell", () => {
   it("signs out from the profile menu", async () => {
     render(<ChatShell />);
 
-    fireEvent.click(screen.getByRole("button", { name: /demo user/i }));
+    fireEvent.click(screen.getByRole("button", { name: /your account/i }));
     fireEvent.click(screen.getByRole("menuitem", { name: /logout/i }));
 
     expect(signOut).toHaveBeenCalledWith({ callbackUrl: "/sign-in" });
