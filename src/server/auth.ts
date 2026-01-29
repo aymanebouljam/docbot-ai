@@ -2,6 +2,7 @@ import type { NextAuthOptions } from "next-auth";
 import { getServerSession } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 
+import { getUserById } from "@/server/user-repository";
 import { authenticateUser } from "@/server/user-service";
 
 export const authOptions: NextAuthOptions = {
@@ -36,6 +37,7 @@ export const authOptions: NextAuthOptions = {
           id: user.id,
           name: user.name,
           email: user.email,
+          image: user.image ?? undefined,
         };
       },
     }),
@@ -53,6 +55,8 @@ export const authOptions: NextAuthOptions = {
         session.user.id = token.userId ?? token.sub ?? "";
         session.user.name = token.name ?? session.user.name;
         session.user.email = token.email ?? session.user.email;
+        session.user.image =
+          typeof token.picture === "string" ? token.picture : session.user.image;
       }
 
       return session;
@@ -76,9 +80,16 @@ export async function getAuthenticatedUser() {
     return null;
   }
 
+  const user = await getUserById(userId);
+
+  if (!user) {
+    return null;
+  }
+
   return {
-    id: userId,
-    name: session.user.name ?? null,
-    email: session.user.email ?? null,
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    image: user.image,
   };
 }
