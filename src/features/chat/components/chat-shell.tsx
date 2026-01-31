@@ -3,6 +3,7 @@
 import {
   FormEvent,
   KeyboardEvent,
+  useRef,
   useDeferredValue,
   startTransition,
   useEffect,
@@ -31,6 +32,7 @@ type ChatShellProps = {
   initialChatId?: string | null;
   currentUserEmail?: string;
   currentUserName?: string;
+  currentUserImage?: string;
 };
 
 type CreateChatResponse = {
@@ -93,8 +95,10 @@ export function ChatShell({
   initialChatId = null,
   currentUserEmail,
   currentUserName,
+  currentUserImage,
 }: ChatShellProps) {
   const router = useRouter();
+  const profileMenuRef = useRef<HTMLDivElement | null>(null);
   const [draft, setDraft] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [chatId, setChatId] = useState<string | null>(initialChatId);
@@ -109,6 +113,10 @@ export function ChatShell({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const deferredChatSearch = useDeferredValue(chatSearch);
   const normalizedChatSearch = deferredChatSearch.trim().toLowerCase();
+  const fallbackAccountLabel =
+    currentUserName?.trim() ||
+    currentUserEmail?.split("@")[0]?.replace(/[._-]+/g, " ") ||
+    "Your account";
   const filteredChats = chatList.filter((chat) => {
     if (!normalizedChatSearch) {
       return true;
@@ -143,6 +151,26 @@ export function ChatShell({
   useEffect(() => {
     void refreshChatList();
   }, []);
+
+  useEffect(() => {
+    function handlePointerDown(event: MouseEvent) {
+      if (!isProfileMenuOpen) {
+        return;
+      }
+
+      if (profileMenuRef.current?.contains(event.target as Node)) {
+        return;
+      }
+
+      setIsProfileMenuOpen(false);
+    }
+
+    document.addEventListener("mousedown", handlePointerDown);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+    };
+  }, [isProfileMenuOpen]);
 
   useEffect(() => {
     setChatId(initialChatId);
@@ -259,6 +287,15 @@ export function ChatShell({
   function toggleSidebar() {
     setIsProfileMenuOpen(false);
     setIsSidebarCollapsed((currentState) => !currentState);
+  }
+
+  function getInitials(label: string) {
+    return label
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase() ?? "")
+      .join("");
   }
 
   async function submitPrompt(prompt: string) {
@@ -577,10 +614,10 @@ export function ChatShell({
             </div>
 
             <div className="mt-4 border-t border-base-200 px-1 pt-4">
-              <div className="relative">
+              <div className="relative" ref={profileMenuRef}>
                 <button
                   type="button"
-                  aria-label={`${currentUserName ?? "Your account"} settings`}
+                  aria-label={`${fallbackAccountLabel} settings`}
                   className={`flex rounded-[1.5rem] border border-base-200 bg-base-100 text-left transition hover:border-emerald-200 hover:bg-emerald-50 ${
                     isSidebarCollapsed
                       ? "w-full justify-center px-2 py-3"
@@ -591,14 +628,27 @@ export function ChatShell({
                   onClick={() => setIsProfileMenuOpen((currentState) => !currentState)}
                 >
                   <div className="avatar placeholder">
-                    <div className="w-11 rounded-2xl bg-neutral text-neutral-content">
-                      <span className="text-sm font-semibold">DB</span>
-                    </div>
+                    {currentUserImage ? (
+                      <div className="h-11 w-11 overflow-hidden rounded-2xl">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={currentUserImage}
+                          alt={`${fallbackAccountLabel} avatar`}
+                          className="h-full w-full object-cover"
+                        />
+                      </div>
+                    ) : (
+                      <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-emerald-200 bg-emerald-100 text-emerald-700">
+                        <span className="text-sm font-semibold">
+                          {getInitials(fallbackAccountLabel)}
+                        </span>
+                      </div>
+                    )}
                   </div>
                   {!isSidebarCollapsed ? (
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium">
-                        {currentUserName ?? "Your account"}
+                        {currentUserName ?? fallbackAccountLabel}
                       </p>
                       <p className="truncate text-xs text-base-content/45">
                         {currentUserEmail ?? "Signed in"}
@@ -623,9 +673,13 @@ export function ChatShell({
                       type="button"
                       className="flex w-full items-center justify-between rounded-[1rem] px-3 py-3 text-left text-sm transition hover:bg-base-200"
                       role="menuitem"
+                      onClick={() => {
+                        setIsProfileMenuOpen(false);
+                        router.push("/profile");
+                      }}
                     >
                       <span>Profile</span>
-                      <span className="text-xs text-base-content/45">Soon</span>
+                      <span className="text-xs text-base-content/45">Open</span>
                     </button>
                     <button
                       type="button"
