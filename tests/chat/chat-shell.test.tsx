@@ -3,14 +3,16 @@ import userEvent from "@testing-library/user-event";
 
 import { ChatShell } from "@/features/chat/components/chat-shell";
 
-const { replace, signOut } = vi.hoisted(() => ({
+const { replace, push, signOut } = vi.hoisted(() => ({
   replace: vi.fn(),
+  push: vi.fn(),
   signOut: vi.fn(),
 }));
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
     replace,
+    push,
   }),
 }));
 
@@ -25,6 +27,7 @@ describe("chat shell", () => {
 
   beforeEach(() => {
     replace.mockReset();
+    push.mockReset();
     signOut.mockReset();
     global.fetch = vi.fn(async (input, init?: RequestInit) => {
       const url = typeof input === "string" ? input : input.toString();
@@ -474,17 +477,26 @@ describe("chat shell", () => {
   it("shows the profile menu from the settings button", async () => {
     render(<ChatShell />);
 
-    fireEvent.click(screen.getByRole("button", { name: /your account/i }));
+    fireEvent.click(screen.getByRole("button", { name: /your account settings/i }));
 
     expect(screen.getByRole("menu", { name: /profile menu/i })).toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: /profile/i })).toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: /logout/i })).toBeInTheDocument();
   });
 
+  it("opens the profile page from the profile menu", async () => {
+    render(<ChatShell />);
+
+    fireEvent.click(screen.getByRole("button", { name: /your account settings/i }));
+    fireEvent.click(screen.getByRole("menuitem", { name: /profile/i }));
+
+    expect(push).toHaveBeenCalledWith("/profile");
+  });
+
   it("signs out from the profile menu", async () => {
     render(<ChatShell />);
 
-    fireEvent.click(screen.getByRole("button", { name: /your account/i }));
+    fireEvent.click(screen.getByRole("button", { name: /your account settings/i }));
     fireEvent.click(screen.getByRole("menuitem", { name: /logout/i }));
 
     expect(signOut).toHaveBeenCalledWith({ callbackUrl: "/sign-in" });

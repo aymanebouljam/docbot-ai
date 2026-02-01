@@ -10,6 +10,12 @@ vi.mock("@/server/auth", () => ({
       email: "user@example.com",
     },
   })),
+  getAuthenticatedUser: vi.fn(async () => ({
+    id: "test-user-id",
+    name: "Test User",
+    email: "user@example.com",
+    image: null,
+  })),
 }));
 
 vi.mock("next/navigation", () => ({
