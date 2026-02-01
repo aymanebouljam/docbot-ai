@@ -4,6 +4,7 @@ import {
   MAX_MESSAGE_LENGTH,
   normalizeStoredContent,
   registerUserRequestSchema,
+  updateProfileRequestSchema,
 } from "@/server/validation";
 
 describe("request validation", () => {
@@ -47,5 +48,15 @@ describe("request validation", () => {
     });
 
     expect(result.success).toBe(false);
+  });
+
+  it("validates a profile update payload", () => {
+    const result = updateProfileRequestSchema.safeParse({
+      name: "Updated User",
+      email: "updated@example.com",
+      image: null,
+    });
+
+    expect(result.success).toBe(true);
   });
 });
