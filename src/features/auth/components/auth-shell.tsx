@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
 
 import { AuthShowcase } from "@/features/auth/components/auth-showcase";
 
@@ -20,9 +21,12 @@ export function AuthShell({
           <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.08)_0%,transparent_40%,rgba(255,255,255,0.05)_100%)]" />
           <div className="relative flex min-h-screen w-full flex-col px-12 py-10 xl:px-16">
             <div className="flex items-center gap-3">
-              <span className="text-2xl font-semibold tracking-tight text-white">
+              <Link
+                href="/"
+                className="text-2xl font-semibold tracking-tight text-white transition hover:text-white/85"
+              >
                 DocBot
-              </span>
+              </Link>
             </div>
 
             <div className="mt-14 flex flex-1 items-start pt-8">
@@ -35,9 +39,12 @@ export function AuthShell({
           <div className="flex min-h-screen w-full flex-col justify-between px-8 py-10 sm:px-12 lg:px-14">
             <div className="lg:hidden">
               <div className="flex items-center gap-3">
-                <span className="text-xl font-semibold tracking-tight text-[#111827]">
+                <Link
+                  href="/"
+                  className="text-xl font-semibold tracking-tight text-[#111827] transition hover:text-slate-700"
+                >
                   DocBot
-                </span>
+                </Link>
               </div>
             </div>
 

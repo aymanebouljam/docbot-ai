@@ -9,6 +9,7 @@ import {
   useEffect,
   useState,
 } from "react";
+import Link from "next/link";
 import {
   Download,
   PanelLeft,
@@ -413,9 +414,13 @@ export function ChatShell({
               >
                 {isSidebarCollapsed ? (
                   <div className="group/logo relative h-12 w-12">
-                    <div className="grid h-12 w-12 place-items-center text-emerald-600 transition-opacity group-hover/logo:opacity-0 group-focus-within/logo:opacity-0">
+                    <Link
+                      href="/"
+                      aria-label="Go to home"
+                      className="grid h-12 w-12 place-items-center text-emerald-600 transition-opacity group-hover/logo:opacity-0 group-focus-within/logo:opacity-0"
+                    >
                       <Stethoscope />
-                    </div>
+                    </Link>
                     <button
                       type="button"
                       className="pointer-events-none absolute inset-0 m-auto grid h-11 w-11 place-items-center rounded-[0.65rem] border border-base-300 bg-base-100 text-base-content opacity-0 shadow-sm transition-opacity group-hover/logo:pointer-events-auto group-hover/logo:opacity-100 group-focus-within/logo:pointer-events-auto group-focus-within/logo:opacity-100 focus-visible:pointer-events-auto focus-visible:opacity-100"
@@ -426,9 +431,13 @@ export function ChatShell({
                     </button>
                   </div>
                 ) : (
-                  <div className="grid h-12 w-12 place-items-center text-emerald-600">
+                  <Link
+                    href="/"
+                    aria-label="Go to home"
+                    className="grid h-12 w-12 place-items-center text-emerald-600"
+                  >
                     <Stethoscope />
-                  </div>
+                  </Link>
                 )}
                 <button
                   type="button"
@@ -618,7 +627,7 @@ export function ChatShell({
                 <button
                   type="button"
                   aria-label={`${fallbackAccountLabel} settings`}
-                  className={`flex rounded-[1.5rem] border border-base-200 bg-base-100 text-left transition hover:border-emerald-200 hover:bg-emerald-50 ${
+                  className={`flex rounded-[1.5rem] border border-base-200 bg-base-100 text-left transition hover:border-base-300 hover:bg-base-200 ${
                     isSidebarCollapsed
                       ? "w-full justify-center px-2 py-3"
                       : "w-full items-center gap-4 px-4 py-3.5"
@@ -720,9 +729,12 @@ export function ChatShell({
             <div className="px-5 py-4">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+                  <Link
+                    href="/"
+                    className="text-2xl font-semibold tracking-tight transition hover:text-emerald-700 sm:text-3xl"
+                  >
                     DocBot
-                  </h2>
+                  </Link>
                 </div>
                 <button
                   type="button"
@@ -773,8 +785,10 @@ export function ChatShell({
                   {messages.map((message) => (
                     <article
                       key={message.id}
-                      className={`chat ${
-                        message.role === "user" ? "chat-end" : "chat-start"
+                      className={`chat flex flex-col ${
+                        message.role === "user"
+                          ? "chat-end items-end text-right"
+                          : "chat-start items-start text-left"
                       }`}
                     >
                       <div className="chat-header mb-2 px-1 text-xs uppercase tracking-[0.18em] text-base-content/45">
@@ -786,7 +800,7 @@ export function ChatShell({
                             ? "border border-emerald-500 bg-emerald-600 text-white"
                             : message.tone === "urgent"
                               ? "border border-error/30 bg-error/10 text-base-content"
-                              : "bg-base-200 text-base-content"
+                              : "bg-slate-200 text-base-content"
                         }`}
                       >
                         {message.content}
@@ -815,7 +829,7 @@ export function ChatShell({
                         DocBot AI
                       </div>
                       <div
-                        className="chat-bubble bg-base-200 text-base-content"
+                        className="chat-bubble bg-slate-200 text-base-content"
                         role="status"
                       >
                         <span className="loading loading-dots loading-md" />
