@@ -1,8 +1,7 @@
-import { classifyDomain } from "@/features/domain/classifier";
 import {
-  buildDomainFallbackResponse,
-  isBlockedDomainClassification,
+  buildPromptInjectionFallbackResponse,
 } from "@/features/domain/fallback";
+import { detectPromptInjection } from "@/features/domain/injection";
 import { assessMedicalSafety } from "@/features/medical-safety/checker";
 import { buildUrgentMedicalResponse } from "@/features/medical-safety/response";
 import { MessageRole } from "@/generated/prisma/enums";
@@ -101,10 +100,8 @@ export async function processUserMessage(input: {
     });
   }
 
-  const classification = classifyDomain(trimmedContent);
-
-  if (isBlockedDomainClassification(classification)) {
-    const fallback = buildDomainFallbackResponse(classification);
+  if (detectPromptInjection(trimmedContent)) {
+    const fallback = buildPromptInjectionFallbackResponse();
     const assistantMessage = await addMessageToChat({
       userId: input.userId,
       chatId: input.chatId,
@@ -113,7 +110,7 @@ export async function processUserMessage(input: {
     });
 
     return {
-      classification,
+      guardrail: "prompt_injection" as const,
       userMessage,
       assistantMessage,
       suggestedPrompts: fallback.suggestedPrompts,
@@ -123,7 +120,9 @@ export async function processUserMessage(input: {
   const safetyAssessment = assessMedicalSafety(trimmedContent);
 
   if (safetyAssessment.level === "urgent") {
-    const urgentResponse = buildUrgentMedicalResponse();
+    const urgentResponse = buildUrgentMedicalResponse(
+      safetyAssessment.category ?? "general_urgent"
+    );
     const assistantMessage = await addMessageToChat({
       userId: input.userId,
       chatId: input.chatId,
@@ -132,7 +131,6 @@ export async function processUserMessage(input: {
     });
 
     return {
-      classification,
       userMessage,
       assistantMessage,
       suggestedPrompts: [],
@@ -153,7 +151,6 @@ export async function processUserMessage(input: {
 
   if (!input.generateMedicalReply) {
     return {
-      classification,
       userMessage,
       assistantMessage: null,
       suggestedPrompts: [],
@@ -176,7 +173,6 @@ export async function processUserMessage(input: {
     });
 
     return {
-      classification,
       userMessage,
       assistantMessage,
       suggestedPrompts: [],
@@ -192,7 +188,6 @@ export async function processUserMessage(input: {
     });
 
     return {
-      classification,
       userMessage,
       assistantMessage,
       suggestedPrompts: [],
