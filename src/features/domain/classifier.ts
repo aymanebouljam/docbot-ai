@@ -1,90 +1,5 @@
 export type DomainClassification = "medical" | "non_medical" | "uncertain";
 
-const MEDICAL_PHRASES = [
-  "blood pressure",
-  "heart rate",
-  "side effect",
-  "side effects",
-  "lab result",
-  "lab results",
-  "chest pain",
-  "shortness of breath",
-  "trouble breathing",
-  "feeling dizzy",
-  "fever",
-  "sore throat",
-  "skin rash",
-  "panic attack",
-  "mental health",
-  "blood sugar",
-  "liver enzyme",
-  "kidney function",
-  "thyroid level",
-  "pregnancy test",
-  "hurt myself",
-  "kill myself",
-];
-
-const MEDICAL_KEYWORDS = [
-  "anemia",
-  "anatomy",
-  "antibiotic",
-  "alt",
-  "asthma",
-  "biopsy",
-  "cbc",
-  "cancer",
-  "cholesterol",
-  "condition",
-  "cough",
-  "dehydration",
-  "diagnosis",
-  "diabetes",
-  "disease",
-  "dizzy",
-  "dizziness",
-  "dose",
-  "dosage",
-  "eczema",
-  "emergency",
-  "fatigue",
-  "flu",
-  "glucose",
-  "headache",
-  "health",
-  "hemoglobin",
-  "hypertension",
-  "infection",
-  "insulin",
-  "lab",
-  "labs",
-  "medication",
-  "medicine",
-  "medical",
-  "migraine",
-  "nausea",
-  "nutrition",
-  "pain",
-  "pharmacy",
-  "pregnancy",
-  "pressure",
-  "rash",
-  "scan",
-  "seizure",
-  "serum",
-  "self-harm",
-  "symptom",
-  "symptoms",
-  "suicidal",
-  "suicide",
-  "therapy",
-  "treatment",
-  "vaccine",
-  "vitamin",
-  "wellness",
-  "xray",
-];
-
 const NON_MEDICAL_PHRASES = [
   "center a div",
   "write code",
@@ -151,13 +66,6 @@ const NON_MEDICAL_INTENT_PATTERNS = [
   /\bplan\b.{0,20}\b(trip|vacation|travel)\b/i,
 ];
 
-const MEDICAL_INTENT_PATTERNS = [
-  /\bwhat (?:is|are|does)\b/i,
-  /\bshould i worry\b/i,
-  /\bcan .{0,30} cause\b/i,
-  /\bis .{0,30} normal\b/i,
-];
-
 const TOKEN_PATTERN = /[a-z][a-z0-9-]*/g;
 
 function normalizeInput(input: string) {
@@ -194,35 +102,13 @@ export function classifyDomain(input: string): DomainClassification {
     return "non_medical";
   }
 
-  const medicalScore =
-    countKeywordHits(normalizedInput, MEDICAL_KEYWORDS) +
-    (containsPhrase(normalizedInput, MEDICAL_PHRASES) ? 2 : 0) +
-    (/\b(my|i have|i'm having|is it normal)\b/.test(normalizedInput) &&
-    /\b(pain|fever|rash|pressure|nausea|dizziness|dizzy|anxiety|cough)\b/.test(
-      normalizedInput
-    )
-      ? 2
-      : 0);
-
   const nonMedicalScore =
     countKeywordHits(normalizedInput, NON_MEDICAL_KEYWORDS) +
     (containsPhrase(normalizedInput, NON_MEDICAL_PHRASES) ? 2 : 0);
 
-  if (medicalScore >= 2 && medicalScore >= nonMedicalScore + 1) {
-    return "medical";
-  }
-
-  if (
-    medicalScore >= 1 &&
-    nonMedicalScore === 0 &&
-    MEDICAL_INTENT_PATTERNS.some((pattern) => pattern.test(normalizedInput))
-  ) {
-    return "medical";
-  }
-
-  if (nonMedicalScore >= 1 && nonMedicalScore >= medicalScore + 1) {
+  if (nonMedicalScore >= 1) {
     return "non_medical";
   }
 
-  return "uncertain";
+  return "medical";
 }

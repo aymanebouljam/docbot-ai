@@ -1,5 +1,6 @@
 export type SafetyAssessment = {
   level: "urgent" | "standard";
+  category: "general_urgent" | "self_harm_crisis" | null;
   matchedTriggers: string[];
 };
 
@@ -40,14 +41,20 @@ export function assessMedicalSafety(input: string): SafetyAssessment {
   ).map((rule) => rule.label);
 
   if (matchedTriggers.length > 0) {
+    const category = matchedTriggers.includes("self-harm crisis")
+      ? "self_harm_crisis"
+      : "general_urgent";
+
     return {
       level: "urgent",
+      category,
       matchedTriggers,
     };
   }
 
   return {
     level: "standard",
+    category: null,
     matchedTriggers: [],
   };
 }
