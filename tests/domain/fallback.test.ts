@@ -1,21 +1,13 @@
 import {
-  buildDomainFallbackResponse,
-  NON_MEDICAL_FALLBACK_MESSAGE,
-  UNCERTAIN_FALLBACK_MESSAGE,
+  buildPromptInjectionFallbackResponse,
+  PROMPT_INJECTION_FALLBACK_MESSAGE,
 } from "@/features/domain/fallback";
 
 describe("domain fallback responses", () => {
-  it("returns the specialized-scope fallback for non-medical prompts", () => {
-    const response = buildDomainFallbackResponse("non_medical");
+  it("returns the prompt-injection fallback", () => {
+    const response = buildPromptInjectionFallbackResponse();
 
-    expect(response.content).toBe(NON_MEDICAL_FALLBACK_MESSAGE);
-    expect(response.suggestedPrompts).toHaveLength(3);
-  });
-
-  it("returns the reframe fallback for uncertain prompts", () => {
-    const response = buildDomainFallbackResponse("uncertain");
-
-    expect(response.content).toBe(UNCERTAIN_FALLBACK_MESSAGE);
+    expect(response.content).toBe(PROMPT_INJECTION_FALLBACK_MESSAGE);
     expect(response.suggestedPrompts).toHaveLength(3);
   });
 });
