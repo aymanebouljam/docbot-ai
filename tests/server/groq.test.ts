@@ -26,6 +26,7 @@ describe("groq integration", () => {
     const prompt = buildMedicalSystemPrompt();
 
     expect(prompt).toMatch(/medical educational assistant/i);
+    expect(prompt).toMatch(/if a request is not medical or health-related/i);
     expect(prompt).toMatch(/do not claim to diagnose with certainty/i);
     expect(prompt).toMatch(/encourage urgent in-person care/i);
   });
