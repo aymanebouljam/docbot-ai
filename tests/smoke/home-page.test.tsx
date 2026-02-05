@@ -45,7 +45,7 @@ describe("home page", () => {
   it("renders the chat shell", async () => {
     render(await Home({ searchParams: Promise.resolve({}) }));
 
-    expect(screen.getByRole("heading", { name: /docbot/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /docbot/i })).toBeInTheDocument();
 
     await waitFor(() =>
       expect(screen.getByText(/test user/i)).toBeInTheDocument()

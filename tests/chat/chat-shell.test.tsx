@@ -89,12 +89,14 @@ describe("chat shell", () => {
     global.fetch = originalFetch;
   });
 
-  it("renders the chat input", () => {
+  it("renders the chat input", async () => {
     render(<ChatShell />);
 
     expect(screen.getByPlaceholderText(composerPlaceholder)).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: /docbot/i })).toBeInTheDocument();
-    expect(screen.getByPlaceholderText(/search chats/i)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /docbot/i })).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByPlaceholderText(/search chats/i)).toBeInTheDocument()
+    );
   });
 
   it("collapses the sidebar into an icon rail", async () => {
