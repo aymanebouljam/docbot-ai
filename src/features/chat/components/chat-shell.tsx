@@ -27,8 +27,6 @@ import type {
   ChatMessage,
   PersistedChat,
 } from "@/features/chat/types";
-import { URGENT_MEDICAL_RESPONSE } from "@/features/medical-safety/response";
-
 type ChatShellProps = {
   initialChatId?: string | null;
   currentUserEmail?: string;
@@ -65,14 +63,6 @@ type PostMessageResponse = {
   safetyLevel?: "standard" | "urgent";
 };
 
-function isUrgentMessage(message: ChatMessage | null | undefined) {
-  return (
-    message?.role === "assistant" &&
-    message.tone === "urgent" &&
-    message.content === URGENT_MEDICAL_RESPONSE
-  );
-}
-
 function buildUiMessage(input: {
   id: string;
   role: "user" | "assistant";
@@ -100,6 +90,7 @@ export function ChatShell({
 }: ChatShellProps) {
   const router = useRouter();
   const profileMenuRef = useRef<HTMLDivElement | null>(null);
+  const conversationEndRef = useRef<HTMLDivElement | null>(null);
   const [draft, setDraft] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [chatId, setChatId] = useState<string | null>(initialChatId);
@@ -110,7 +101,6 @@ export function ChatShell({
   const [isResponding, setIsResponding] = useState(false);
   const [isLoadingHistory, setIsLoadingHistory] = useState(Boolean(initialChatId));
   const [isLoadingChatList, setIsLoadingChatList] = useState(true);
-  const [emergencyBanner, setEmergencyBanner] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const deferredChatSearch = useDeferredValue(chatSearch);
   const normalizedChatSearch = deferredChatSearch.trim().toLowerCase();
@@ -178,7 +168,6 @@ export function ChatShell({
 
     if (!initialChatId) {
       setMessages([]);
-      setEmergencyBanner(null);
       setIsLoadingHistory(false);
       return;
     }
@@ -203,14 +192,7 @@ export function ChatShell({
         }
 
         const nextMessages = mapPersistedChatMessages(payload.chat);
-        const latestAssistantMessage = [...nextMessages]
-          .reverse()
-          .find((message) => message.role === "assistant");
-
         setMessages(nextMessages);
-        setEmergencyBanner(
-          isUrgentMessage(latestAssistantMessage) ? URGENT_MEDICAL_RESPONSE : null
-        );
       } catch {
         if (!isActive) {
           return;
@@ -230,6 +212,17 @@ export function ChatShell({
       isActive = false;
     };
   }, [initialChatId]);
+
+  useEffect(() => {
+    if (messages.length === 0 && !isResponding && !isLoadingHistory) {
+      return;
+    }
+
+    conversationEndRef.current?.scrollIntoView?.({
+      block: "end",
+      behavior: "smooth",
+    });
+  }, [messages, isResponding, isLoadingHistory]);
 
   async function ensureChatSession() {
     if (chatId) {
@@ -265,7 +258,6 @@ export function ChatShell({
     setDraft("");
     setChatSearch("");
     setIsProfileMenuOpen(false);
-    setEmergencyBanner(null);
     setErrorMessage(null);
     setIsLoadingHistory(false);
     startTransition(() => {
@@ -355,9 +347,6 @@ export function ChatShell({
         ...currentMessages.filter((message) => message.id !== optimisticMessageId),
         ...nextMessages,
       ]);
-      setEmergencyBanner(
-        payload.safetyLevel === "urgent" ? URGENT_MEDICAL_RESPONSE : null
-      );
       await refreshChatList();
     } catch {
       setMessages((currentMessages) =>
@@ -391,17 +380,17 @@ export function ChatShell({
   }
 
   return (
-    <div className="grid min-h-screen bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.16),_transparent_35%),linear-gradient(180deg,_#f7fcfa_0%,_#dcfce7_100%)]">
-      <div className="flex min-h-screen w-full flex-col">
+    <div className="grid h-screen overflow-hidden bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.16),_transparent_35%),linear-gradient(180deg,_#f7fcfa_0%,_#dcfce7_100%)]">
+      <div className="flex h-screen w-full flex-col overflow-hidden">
         <div
-          className={`grid min-h-screen flex-1 ${
+          className={`grid min-h-0 flex-1 ${
             isSidebarCollapsed
               ? "lg:grid-cols-[88px_minmax(0,1fr)]"
               : "lg:grid-cols-[320px_minmax(0,1fr)]"
           }`}
         >
           <aside
-            className={`group/sidebar flex min-h-screen flex-col border-r border-[#c9e3df] bg-[linear-gradient(180deg,_rgba(233,247,246,0.98)_0%,_rgba(203,232,228,0.98)_100%)] shadow-lg transition-all ${
+            className={`group/sidebar flex min-h-0 flex-col overflow-hidden border-r border-[#c9e3df] bg-[linear-gradient(180deg,_rgba(233,247,246,0.98)_0%,_rgba(203,232,228,0.98)_100%)] shadow-lg transition-all ${
               isSidebarCollapsed ? "px-2 py-2" : "px-3 py-2.5"
             }`}
             aria-label="Chat sidebar"
@@ -483,9 +472,9 @@ export function ChatShell({
               </button>
             </div>
 
-            <div className="flex-1 space-y-4 px-1">
+            <div className="flex min-h-0 flex-1 flex-col px-1">
               {isSidebarCollapsed ? (
-                <div className="space-y-3">
+                <div className="flex min-h-0 flex-1 flex-col space-y-3">
                   <button
                     type="button"
                     aria-label="Search chats"
@@ -506,7 +495,7 @@ export function ChatShell({
                       <path d="m21 21-4.3-4.3" />
                     </svg>
                   </button>
-                  <div className="rounded-[1.5rem] border border-base-200 bg-base-100 p-2">
+                  <div className="flex min-h-0 flex-1 flex-col rounded-[1.5rem] border border-base-200 bg-base-100 p-2">
                     <p className="mb-2 text-center text-[10px] font-medium uppercase tracking-[0.2em] text-base-content/45">
                       Chats
                     </p>
@@ -519,7 +508,10 @@ export function ChatShell({
                         <span className="text-xs text-base-content/45">0</span>
                       </div>
                     ) : (
-                      <nav className="space-y-2" aria-label="Saved conversations">
+                      <nav
+                        className="min-h-0 space-y-2 overflow-y-auto"
+                        aria-label="Saved conversations"
+                      >
                         {filteredChats.map((chat) => (
                           <button
                             key={chat.id}
@@ -552,7 +544,7 @@ export function ChatShell({
                   </div>
                 </div>
               ) : (
-                <>
+                <div className="flex min-h-0 flex-1 flex-col gap-4">
                   <label className="input input-bordered flex items-center gap-2 rounded-full border-base-200 bg-base-100">
                     <svg
                       aria-hidden="true"
@@ -576,7 +568,7 @@ export function ChatShell({
                     />
                   </label>
 
-                  <div className="rounded-[1.5rem] border border-base-200 bg-base-100 p-3">
+                  <div className="flex min-h-0 flex-1 flex-col rounded-[1.5rem] border border-base-200 bg-base-100 p-3">
                     <div className="mb-3 flex items-center justify-between gap-3">
                       <p className="text-xs font-medium uppercase tracking-[0.18em] text-base-content/45">
                         Your chats
@@ -594,7 +586,10 @@ export function ChatShell({
                         </p>
                       ) : null
                     ) : (
-                      <nav className="space-y-2" aria-label="Saved conversations">
+                      <nav
+                        className="min-h-0 flex-1 space-y-2 overflow-y-auto"
+                        aria-label="Saved conversations"
+                      >
                         {filteredChats.map((chat) => (
                           <button
                             key={chat.id}
@@ -618,7 +613,7 @@ export function ChatShell({
                       </nav>
                     )}
                   </div>
-                </>
+                </div>
               )}
             </div>
 
@@ -706,18 +701,9 @@ export function ChatShell({
           </aside>
 
           <main
-            className="flex min-h-screen flex-col bg-[linear-gradient(180deg,_rgba(236,253,245,0.78)_0%,_rgba(255,255,255,0.96)_32%,_rgba(236,253,245,0.72)_100%)] px-4 py-5 shadow-xl shadow-emerald-100/80 sm:px-5 sm:py-6"
+            className="flex min-h-0 flex-col overflow-hidden bg-[linear-gradient(180deg,_rgba(236,253,245,0.78)_0%,_rgba(255,255,255,0.96)_32%,_rgba(236,253,245,0.72)_100%)] px-4 py-5 shadow-xl shadow-emerald-100/80 sm:px-5 sm:py-6"
             aria-busy={isLoadingHistory || isResponding}
           >
-            {emergencyBanner ? (
-              <div
-                className="border-b border-error/30 bg-error/10 px-5 py-4 text-sm leading-6 text-error-content"
-                role="alert"
-              >
-                <p className="font-semibold text-error">Urgent safety guidance</p>
-                <p className="mt-1 text-base-content/80">{emergencyBanner}</p>
-              </div>
-            ) : null}
             {errorMessage ? (
               <div
                 className="border-b border-warning/30 bg-warning/10 px-5 py-4 text-sm leading-6 text-base-content"
@@ -747,7 +733,7 @@ export function ChatShell({
             </div>
             <div className="h-px w-full bg-base-300" />
 
-            <div className="overflow-y-auto px-4 py-5 sm:px-5">
+            <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-5">
               {isLoadingHistory ? (
                 <div className="flex h-full min-h-[22rem] items-center justify-center">
                   <div
@@ -839,6 +825,7 @@ export function ChatShell({
                       </div>
                     </article>
                   ) : null}
+                  <div ref={conversationEndRef} aria-hidden="true" />
                 </div>
               )}
             </div>
