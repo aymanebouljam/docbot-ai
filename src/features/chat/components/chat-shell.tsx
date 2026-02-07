@@ -12,6 +12,7 @@ import {
 import Link from "next/link";
 import {
   Download,
+  EllipsisVertical,
   PanelLeft,
   SendHorizontal,
   Settings,
@@ -90,6 +91,8 @@ export function ChatShell({
 }: ChatShellProps) {
   const router = useRouter();
   const profileMenuRef = useRef<HTMLDivElement | null>(null);
+  const conversationMenuRef = useRef<HTMLDivElement | null>(null);
+  const sidebarChatMenuRef = useRef<HTMLDivElement | null>(null);
   const conversationEndRef = useRef<HTMLDivElement | null>(null);
   const [draft, setDraft] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -98,6 +101,12 @@ export function ChatShell({
   const [chatSearch, setChatSearch] = useState("");
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const [isConversationMenuOpen, setIsConversationMenuOpen] = useState(false);
+  const [openSidebarChatMenuId, setOpenSidebarChatMenuId] = useState<string | null>(
+    null
+  );
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [pendingDeleteChatId, setPendingDeleteChatId] = useState<string | null>(null);
   const [isResponding, setIsResponding] = useState(false);
   const [isLoadingHistory, setIsLoadingHistory] = useState(Boolean(initialChatId));
   const [isLoadingChatList, setIsLoadingChatList] = useState(true);
@@ -145,15 +154,26 @@ export function ChatShell({
 
   useEffect(() => {
     function handlePointerDown(event: MouseEvent) {
-      if (!isProfileMenuOpen) {
-        return;
+      if (
+        isProfileMenuOpen &&
+        !profileMenuRef.current?.contains(event.target as Node)
+      ) {
+        setIsProfileMenuOpen(false);
       }
 
-      if (profileMenuRef.current?.contains(event.target as Node)) {
-        return;
+      if (
+        isConversationMenuOpen &&
+        !conversationMenuRef.current?.contains(event.target as Node)
+      ) {
+        setIsConversationMenuOpen(false);
       }
 
-      setIsProfileMenuOpen(false);
+      if (
+        openSidebarChatMenuId &&
+        !sidebarChatMenuRef.current?.contains(event.target as Node)
+      ) {
+        setOpenSidebarChatMenuId(null);
+      }
     }
 
     document.addEventListener("mousedown", handlePointerDown);
@@ -161,7 +181,7 @@ export function ChatShell({
     return () => {
       document.removeEventListener("mousedown", handlePointerDown);
     };
-  }, [isProfileMenuOpen]);
+  }, [isConversationMenuOpen, isProfileMenuOpen, openSidebarChatMenuId]);
 
   useEffect(() => {
     setChatId(initialChatId);
@@ -258,6 +278,10 @@ export function ChatShell({
     setDraft("");
     setChatSearch("");
     setIsProfileMenuOpen(false);
+    setIsConversationMenuOpen(false);
+    setOpenSidebarChatMenuId(null);
+    setIsDeleteModalOpen(false);
+    setPendingDeleteChatId(null);
     setErrorMessage(null);
     setIsLoadingHistory(false);
     startTransition(() => {
@@ -271,6 +295,10 @@ export function ChatShell({
     }
 
     setIsProfileMenuOpen(false);
+    setIsConversationMenuOpen(false);
+    setOpenSidebarChatMenuId(null);
+    setIsDeleteModalOpen(false);
+    setPendingDeleteChatId(null);
     setErrorMessage(null);
     startTransition(() => {
       router.replace(`/?chatId=${nextChatId}`, { scroll: false });
@@ -279,6 +307,10 @@ export function ChatShell({
 
   function toggleSidebar() {
     setIsProfileMenuOpen(false);
+    setIsConversationMenuOpen(false);
+    setOpenSidebarChatMenuId(null);
+    setIsDeleteModalOpen(false);
+    setPendingDeleteChatId(null);
     setIsSidebarCollapsed((currentState) => !currentState);
   }
 
@@ -289,6 +321,51 @@ export function ChatShell({
       .slice(0, 2)
       .map((part) => part[0]?.toUpperCase() ?? "")
       .join("");
+  }
+
+  function requestDeleteConversation(targetChatId: string) {
+    setIsConversationMenuOpen(false);
+    setOpenSidebarChatMenuId(null);
+    setPendingDeleteChatId(targetChatId);
+    setIsDeleteModalOpen(true);
+  }
+
+  async function handleDeleteConversation() {
+    const targetChatId = pendingDeleteChatId ?? chatId;
+
+    if (!targetChatId) {
+      return;
+    }
+
+    setIsConversationMenuOpen(false);
+    setOpenSidebarChatMenuId(null);
+    setIsDeleteModalOpen(false);
+    setPendingDeleteChatId(null);
+    setErrorMessage(null);
+
+    try {
+      const response = await fetch(`/api/chats/${targetChatId}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error("Unable to delete this conversation.");
+      }
+
+      setMessages([]);
+      setDraft("");
+      if (targetChatId === chatId) {
+        setChatId(null);
+      }
+      await refreshChatList();
+      if (targetChatId === chatId) {
+        startTransition(() => {
+          router.replace("/", { scroll: false });
+        });
+      }
+    } catch {
+      setErrorMessage("Unable to delete this conversation right now.");
+    }
   }
 
   async function submitPrompt(prompt: string) {
@@ -509,7 +586,7 @@ export function ChatShell({
                       </div>
                     ) : (
                       <nav
-                        className="min-h-0 space-y-2 overflow-y-auto"
+                        className="scrollbar-none min-h-0 space-y-2 overflow-y-auto"
                         aria-label="Saved conversations"
                       >
                         {filteredChats.map((chat) => (
@@ -568,7 +645,7 @@ export function ChatShell({
                     />
                   </label>
 
-                  <div className="flex min-h-0 flex-1 flex-col rounded-[1.5rem] border border-base-200 bg-base-100 p-3">
+                  <div className="flex min-h-0 flex-1 flex-col rounded-[1.5rem] border border-base-200 bg-base-100 py-3 px-4">
                     <div className="mb-3 flex items-center justify-between gap-3">
                       <p className="text-xs font-medium uppercase tracking-[0.18em] text-base-content/45">
                         Your chats
@@ -587,28 +664,79 @@ export function ChatShell({
                       ) : null
                     ) : (
                       <nav
-                        className="min-h-0 flex-1 space-y-2 overflow-y-auto"
+                        className="scrollbar-none min-h-0 flex-1 space-y-2 overflow-y-auto"
                         aria-label="Saved conversations"
                       >
                         {filteredChats.map((chat) => (
-                          <button
+                          <div
                             key={chat.id}
-                            type="button"
-                            aria-current={chat.id === chatId ? "page" : undefined}
-                            className={`w-full rounded-[1.25rem] border px-4 py-3 text-left transition ${
+                            className={`relative flex items-center gap-2 rounded-[1.25rem] border px-3 py-2 transition ${
                               chat.id === chatId
                                 ? "border-emerald-200 bg-emerald-50 text-emerald-700"
                                 : "border-base-200 bg-base-100 hover:border-emerald-200 hover:bg-emerald-50/60"
                             }`}
-                            onClick={() => handleSelectChat(chat.id)}
                           >
-                            <p className="text-sm font-medium leading-6">
-                              {chat.title ?? "New medical chat"}
-                            </p>
-                            <p className="mt-1 text-xs uppercase tracking-[0.18em] text-base-content/45">
-                              {chat.id === chatId ? "Current chat" : "Open chat"}
-                            </p>
-                          </button>
+                            <button
+                              type="button"
+                              aria-current={chat.id === chatId ? "page" : undefined}
+                              className="min-w-0 flex-1 px-1 py-1 text-left"
+                              onClick={() => handleSelectChat(chat.id)}
+                            >
+                              <p className="truncate text-sm font-medium leading-6">
+                                {chat.title ?? "New medical chat"}
+                              </p>
+                            </button>
+                            <div
+                              className="relative shrink-0"
+                              ref={
+                                openSidebarChatMenuId === chat.id
+                                  ? sidebarChatMenuRef
+                                  : undefined
+                              }
+                            >
+                              <button
+                                type="button"
+                                className="grid h-9 w-9 place-items-center rounded-full text-base-content/60 transition hover:bg-base-200 hover:text-base-content"
+                                aria-label={`Conversation actions for ${
+                                  chat.title ?? "new medical chat"
+                                }`}
+                                aria-expanded={openSidebarChatMenuId === chat.id}
+                                aria-haspopup="menu"
+                                onClick={() =>
+                                  setOpenSidebarChatMenuId((currentState) =>
+                                    currentState === chat.id ? null : chat.id
+                                  )
+                                }
+                              >
+                                <EllipsisVertical
+                                  aria-hidden="true"
+                                  className="h-4 w-4"
+                                />
+                              </button>
+
+                              {openSidebarChatMenuId === chat.id ? (
+                                <div
+                                  className="absolute right-0 top-[calc(100%+0.35rem)] z-10 w-52 rounded-[1rem] border border-base-200 bg-base-100 p-2 shadow-xl"
+                                  role="menu"
+                                  aria-label={`Conversation menu for ${
+                                    chat.title ?? "new medical chat"
+                                  }`}
+                                >
+                                  <button
+                                    type="button"
+                                    className="flex w-full items-center justify-between rounded-[0.9rem] px-3 py-3 text-left text-sm text-error transition hover:bg-error/10"
+                                    role="menuitem"
+                                    onClick={() => requestDeleteConversation(chat.id)}
+                                  >
+                                    <span>Delete conversation</span>
+                                    <span className="text-xs text-base-content/45">
+                                      Now
+                                    </span>
+                                  </button>
+                                </div>
+                              ) : null}
+                            </div>
+                          </div>
                         ))}
                       </nav>
                     )}
@@ -701,7 +829,7 @@ export function ChatShell({
           </aside>
 
           <main
-            className="flex min-h-0 flex-col overflow-hidden bg-[linear-gradient(180deg,_rgba(236,253,245,0.78)_0%,_rgba(255,255,255,0.96)_32%,_rgba(236,253,245,0.72)_100%)] px-4 py-5 shadow-xl shadow-emerald-100/80 sm:px-5 sm:py-6"
+            className="relative flex min-h-0 flex-col overflow-hidden bg-[linear-gradient(180deg,_rgba(236,253,245,0.78)_0%,_rgba(255,255,255,0.96)_32%,_rgba(236,253,245,0.72)_100%)] px-4 py-5 shadow-xl shadow-emerald-100/80 sm:px-5 sm:py-6"
             aria-busy={isLoadingHistory || isResponding}
           >
             {errorMessage ? (
@@ -722,18 +850,59 @@ export function ChatShell({
                     DocBot
                   </Link>
                 </div>
-                <button
-                  type="button"
-                  className="grid h-11 w-11 place-items-center rounded-[0.65rem] text-base-content transition hover:bg-base-200"
-                  aria-label="Download conversation"
-                >
-                  <Download aria-hidden="true" className="h-5 w-5" />
-                </button>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    className="grid h-11 w-11 place-items-center rounded-[0.65rem] text-base-content transition hover:bg-base-200"
+                    aria-label="Download conversation"
+                  >
+                    <Download aria-hidden="true" className="h-5 w-5" />
+                  </button>
+                  <div className="relative" ref={conversationMenuRef}>
+                    <button
+                      type="button"
+                      className="grid h-11 w-11 place-items-center rounded-[0.65rem] text-base-content transition hover:bg-base-200"
+                      aria-label="Current conversation actions"
+                      aria-expanded={isConversationMenuOpen}
+                      aria-haspopup="menu"
+                      onClick={() =>
+                        setIsConversationMenuOpen((currentState) => !currentState)
+                      }
+                    >
+                      <EllipsisVertical aria-hidden="true" className="h-5 w-5" />
+                    </button>
+
+                    {isConversationMenuOpen ? (
+                      <div
+                        className="absolute right-0 top-[calc(100%+0.5rem)] z-10 w-56 rounded-[1.25rem] border border-base-200 bg-base-100 p-2 shadow-2xl"
+                        role="menu"
+                        aria-label="Conversation menu"
+                      >
+                        <button
+                          type="button"
+                          className="flex w-full items-center justify-between rounded-[1rem] px-3 py-3 text-left text-sm text-error transition hover:bg-error/10 disabled:cursor-not-allowed disabled:text-base-content/35"
+                          role="menuitem"
+                          disabled={!chatId}
+                          onClick={() => {
+                            if (chatId) {
+                              requestDeleteConversation(chatId);
+                            }
+                          }}
+                        >
+                          <span>Delete conversation</span>
+                          <span className="text-xs text-base-content/45">
+                            {chatId ? "Now" : "No chat"}
+                          </span>
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
               </div>
             </div>
             <div className="h-px w-full bg-base-300" />
 
-            <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-5">
+            <div className="scrollbar-none min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-5">
               {isLoadingHistory ? (
                 <div className="flex h-full min-h-[22rem] items-center justify-center">
                   <div
@@ -868,6 +1037,53 @@ export function ChatShell({
                 </p>
               </div>
             </form>
+
+            {isDeleteModalOpen ? (
+              <div
+                className="absolute inset-0 z-20 flex items-center justify-center bg-slate-950/30 px-4 backdrop-blur-sm"
+                role="presentation"
+                onClick={() => setIsDeleteModalOpen(false)}
+              >
+                <div
+                  className="w-full max-w-md rounded-[1.75rem] border border-base-200 bg-base-100 p-6 shadow-2xl"
+                  role="dialog"
+                  aria-modal="true"
+                  aria-labelledby="delete-conversation-title"
+                  aria-describedby="delete-conversation-description"
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  <h2
+                    id="delete-conversation-title"
+                    className="text-xl font-semibold tracking-tight"
+                  >
+                    Delete conversation?
+                  </h2>
+                  <p
+                    id="delete-conversation-description"
+                    className="mt-3 text-sm leading-6 text-base-content/70"
+                  >
+                    This will permanently remove this conversation and its
+                    messages from your chat history.
+                  </p>
+                  <div className="mt-6 flex justify-end gap-3">
+                    <button
+                      type="button"
+                      className="btn rounded-full border-base-300 bg-base-100 text-base-content hover:bg-base-200"
+                      onClick={() => setIsDeleteModalOpen(false)}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      className="btn rounded-full border-0 bg-error text-white hover:bg-error/90"
+                      onClick={() => void handleDeleteConversation()}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : null}
 
           </main>
         </div>

@@ -1,3 +1,4 @@
+import { DELETE as DELETE_CHAT, GET as GET_CHAT } from "@/app/api/chats/[chatId]/route";
 import { GET, POST } from "@/app/api/chats/route";
 import { MAX_CHAT_TITLE_LENGTH } from "@/server/validation";
 import { createChatSession } from "@/server/chat-service";
@@ -91,5 +92,37 @@ describe("chat list route", () => {
     const response = await GET();
 
     expect(response.status).toBe(401);
+  });
+
+  it("deletes the requested chat", async () => {
+    const { user } = await createTestUser({
+      id: "test-user-id",
+      email: "user@example.com",
+    });
+    const chat = await createChatSession(user.id, "Delete me");
+
+    const response = await DELETE_CHAT(
+      new Request(`http://localhost/api/chats/${chat.id}`, {
+        method: "DELETE",
+      }),
+      { params: Promise.resolve({ chatId: chat.id }) }
+    );
+    const body = (await response.json()) as {
+      chat: { id: string; title: string | null };
+    };
+
+    expect(response.status).toBe(200);
+    expect(body.chat.id).toBe(chat.id);
+
+    const deletedChatResponse = await GET_CHAT(new Request(`http://localhost/api/chats/${chat.id}`), {
+      params: Promise.resolve({ chatId: chat.id }),
+    });
+    const chatsResponse = await GET();
+    const chatsBody = (await chatsResponse.json()) as {
+      chats: Array<{ id: string }>;
+    };
+
+    expect(deletedChatResponse.status).toBe(404);
+    expect(chatsBody.chats).toHaveLength(0);
   });
 });

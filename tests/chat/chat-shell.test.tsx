@@ -39,8 +39,8 @@ describe("chat shell", () => {
               {
                 id: "chat-1",
                 title: "What causes low iron",
-                updatedAt: "2026-03-30T00:00:00.000Z",
-                createdAt: "2026-03-30T00:00:00.000Z",
+                updatedAt: "2026-01-30T00:00:00.000Z",
+                createdAt: "2026-01-30T00:00:00.000Z",
               },
             ],
           }),
@@ -256,8 +256,8 @@ describe("chat shell", () => {
               {
                 id: "chat-7",
                 title: "ALT follow-up",
-                updatedAt: "2026-03-30T00:00:00.000Z",
-                createdAt: "2026-03-30T00:00:00.000Z",
+                updatedAt: "2026-01-30T00:00:00.000Z",
+                createdAt: "2026-01-30T00:00:00.000Z",
               },
             ],
           }),
@@ -318,14 +318,14 @@ describe("chat shell", () => {
               {
                 id: "chat-10",
                 title: "What causes anemia",
-                updatedAt: "2026-03-30T00:00:00.000Z",
-                createdAt: "2026-03-30T00:00:00.000Z",
+                updatedAt: "2026-01-30T00:00:00.000Z",
+                createdAt: "2026-01-30T00:00:00.000Z",
               },
               {
                 id: "chat-11",
                 title: "High blood pressure follow-up",
-                updatedAt: "2026-03-29T00:00:00.000Z",
-                createdAt: "2026-03-29T00:00:00.000Z",
+                updatedAt: "2026-01-29T00:00:00.000Z",
+                createdAt: "2026-01-29T00:00:00.000Z",
               },
             ],
           }),
@@ -366,15 +366,81 @@ describe("chat shell", () => {
 
     await waitFor(() =>
       expect(
-        screen.getByRole("button", { name: /what causes anemia/i })
+        screen.getByRole("button", { name: /^What causes anemia$/i })
       ).toBeInTheDocument()
     );
 
     fireEvent.click(
-      screen.getByRole("button", { name: /high blood pressure follow-up/i })
+      screen.getByRole("button", { name: /^High blood pressure follow-up$/i })
     );
 
     expect(replace).toHaveBeenCalledWith("/?chatId=chat-11", { scroll: false });
+  });
+
+  it("opens sidebar chat actions and deletes a saved conversation", async () => {
+    const chats = [
+      {
+        id: "chat-10",
+        title: "What causes anemia",
+        updatedAt: "2026-01-30T00:00:00.000Z",
+        createdAt: "2026-01-30T00:00:00.000Z",
+      },
+    ];
+
+    global.fetch = vi.fn(async (input, init?: RequestInit) => {
+      const url = typeof input === "string" ? input : input.toString();
+
+      if (url === "/api/chats" && init?.method !== "DELETE") {
+        return new Response(
+          JSON.stringify({ chats }),
+          { status: 200 }
+        );
+      }
+
+      if (url === "/api/chats/chat-10" && init?.method === "DELETE") {
+        chats.splice(0, chats.length);
+        return new Response(
+          JSON.stringify({
+            chat: {
+              id: "chat-10",
+              title: "What causes anemia",
+            },
+          }),
+          { status: 200 }
+        );
+      }
+
+      return new Response(JSON.stringify({ error: "Unexpected request" }), {
+        status: 404,
+      });
+    });
+
+    render(<ChatShell />);
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: /^What causes anemia$/i })
+      ).toBeInTheDocument()
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: /conversation actions for what causes anemia/i,
+      })
+    );
+    fireEvent.click(screen.getByRole("menuitem", { name: /delete conversation/i }));
+
+    expect(
+      screen.getByRole("dialog", { name: /delete conversation/i })
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /^delete$/i }));
+
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("button", { name: /^What causes anemia$/i })
+      ).not.toBeInTheDocument()
+    );
   });
 
   it("marks the active conversation for assistive technology", async () => {
@@ -388,8 +454,8 @@ describe("chat shell", () => {
               {
                 id: "chat-7",
                 title: "ALT follow-up",
-                updatedAt: "2026-03-30T00:00:00.000Z",
-                createdAt: "2026-03-30T00:00:00.000Z",
+                updatedAt: "2026-01-30T00:00:00.000Z",
+                createdAt: "2026-01-30T00:00:00.000Z",
               },
             ],
           }),
@@ -418,7 +484,9 @@ describe("chat shell", () => {
     render(<ChatShell initialChatId="chat-7" />);
 
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: /alt follow-up/i })).toHaveAttribute(
+      expect(
+        screen.getByRole("button", { name: /^ALT follow-up$/i })
+      ).toHaveAttribute(
         "aria-current",
         "page"
       )
@@ -436,14 +504,14 @@ describe("chat shell", () => {
               {
                 id: "chat-10",
                 title: "What causes anemia",
-                updatedAt: "2026-03-30T00:00:00.000Z",
-                createdAt: "2026-03-30T00:00:00.000Z",
+                updatedAt: "2026-01-30T00:00:00.000Z",
+                createdAt: "2026-01-30T00:00:00.000Z",
               },
               {
                 id: "chat-11",
                 title: "High blood pressure follow-up",
-                updatedAt: "2026-03-29T00:00:00.000Z",
-                createdAt: "2026-03-29T00:00:00.000Z",
+                updatedAt: "2026-01-29T00:00:00.000Z",
+                createdAt: "2026-01-29T00:00:00.000Z",
               },
             ],
           }),
@@ -460,7 +528,7 @@ describe("chat shell", () => {
 
     await waitFor(() =>
       expect(
-        screen.getByRole("button", { name: /what causes anemia/i })
+        screen.getByRole("button", { name: /^What causes anemia$/i })
       ).toBeInTheDocument()
     );
 
@@ -469,10 +537,10 @@ describe("chat shell", () => {
     });
 
     expect(
-      screen.queryByRole("button", { name: /what causes anemia/i })
+      screen.queryByRole("button", { name: /^What causes anemia$/i })
     ).not.toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /high blood pressure follow-up/i })
+      screen.getByRole("button", { name: /^High blood pressure follow-up$/i })
     ).toBeInTheDocument();
   });
 
@@ -515,8 +583,8 @@ describe("chat shell", () => {
               {
                 id: "chat-7",
                 title: "ALT follow-up",
-                updatedAt: "2026-03-30T00:00:00.000Z",
-                createdAt: "2026-03-30T00:00:00.000Z",
+                updatedAt: "2026-01-30T00:00:00.000Z",
+                createdAt: "2026-01-30T00:00:00.000Z",
               },
             ],
           }),
@@ -564,5 +632,159 @@ describe("chat shell", () => {
         })
       ).toBeInTheDocument()
     );
+  });
+
+  it("deletes the active conversation from the header menu", async () => {
+    global.fetch = vi.fn(async (input, init?: RequestInit) => {
+      const url = typeof input === "string" ? input : input.toString();
+
+      if (url === "/api/chats" && init?.method !== "DELETE") {
+        return new Response(
+          JSON.stringify({
+            chats: [
+              {
+                id: "chat-7",
+                title: "ALT follow-up",
+                updatedAt: "2026-01-30T00:00:00.000Z",
+                createdAt: "2026-01-30T00:00:00.000Z",
+              },
+            ],
+          }),
+          { status: 200 }
+        );
+      }
+
+      if (url === "/api/chats/chat-7") {
+        if (init?.method === "DELETE") {
+          return new Response(
+            JSON.stringify({
+              chat: {
+                id: "chat-7",
+                title: "ALT follow-up",
+              },
+            }),
+            { status: 200 }
+          );
+        }
+
+        return new Response(
+          JSON.stringify({
+            chat: {
+              id: "chat-7",
+              title: "ALT follow-up",
+              messages: [
+                {
+                  id: "user-7",
+                  role: "user",
+                  content: "What does elevated ALT mean?",
+                },
+              ],
+            },
+          }),
+          { status: 200 }
+        );
+      }
+
+      return new Response(JSON.stringify({ error: "Unexpected request" }), {
+        status: 404,
+      });
+    });
+
+    render(<ChatShell initialChatId="chat-7" />);
+
+    await waitFor(() =>
+      expect(screen.getByText(/what does elevated ALT mean/i)).toBeInTheDocument()
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /current conversation actions/i })
+    );
+    fireEvent.click(screen.getByRole("menuitem", { name: /delete conversation/i }));
+    expect(
+      screen.getByRole("dialog", { name: /delete conversation/i })
+    ).toBeInTheDocument();
+    expect(replace).not.toHaveBeenCalledWith("/", { scroll: false });
+    fireEvent.click(screen.getByRole("button", { name: /^delete$/i }));
+
+    await waitFor(() =>
+      expect(replace).toHaveBeenCalledWith("/", { scroll: false })
+    );
+    await waitFor(() =>
+      expect(
+        screen.getByRole("heading", {
+          name: /ask a medical question to begin the chat/i,
+        })
+      ).toBeInTheDocument()
+    );
+  });
+
+  it("cancels conversation deletion from the confirmation modal", async () => {
+    global.fetch = vi.fn(async (input, init?: RequestInit) => {
+      const url = typeof input === "string" ? input : input.toString();
+
+      if (url === "/api/chats" && init?.method !== "DELETE") {
+        return new Response(
+          JSON.stringify({
+            chats: [
+              {
+                id: "chat-7",
+                title: "ALT follow-up",
+                updatedAt: "2026-01-30T00:00:00.000Z",
+                createdAt: "2026-01-30T00:00:00.000Z",
+              },
+            ],
+          }),
+          { status: 200 }
+        );
+      }
+
+      if (url === "/api/chats/chat-7") {
+        return new Response(
+          JSON.stringify({
+            chat: {
+              id: "chat-7",
+              title: "ALT follow-up",
+              messages: [
+                {
+                  id: "user-7",
+                  role: "user",
+                  content: "What does elevated ALT mean?",
+                },
+              ],
+            },
+          }),
+          { status: 200 }
+        );
+      }
+
+      return new Response(JSON.stringify({ error: "Unexpected request" }), {
+        status: 404,
+      });
+    });
+
+    render(<ChatShell initialChatId="chat-7" />);
+
+    await waitFor(() =>
+      expect(screen.getByText(/what does elevated ALT mean/i)).toBeInTheDocument()
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /current conversation actions/i })
+    );
+    fireEvent.click(screen.getByRole("menuitem", { name: /delete conversation/i }));
+
+    expect(
+      screen.getByRole("dialog", { name: /delete conversation/i })
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /cancel/i }));
+
+    expect(
+      screen.queryByRole("dialog", { name: /delete conversation/i })
+    ).not.toBeInTheDocument();
+    expect(replace).not.toHaveBeenCalledWith("/", { scroll: false });
+    expect(
+      screen.getByText(/what does elevated ALT mean/i)
+    ).toBeInTheDocument();
   });
 });

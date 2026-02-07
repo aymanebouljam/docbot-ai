@@ -1,4 +1,4 @@
-import { loadChat } from "@/server/chat-service";
+import { deleteChatSession, loadChat } from "@/server/chat-service";
 import {
   createUnauthorizedResponse,
   getAuthenticatedUser,
@@ -23,4 +23,21 @@ export async function GET(_request: Request, context: ChatRouteContext) {
   }
 
   return Response.json({ chat });
+}
+
+export async function DELETE(_request: Request, context: ChatRouteContext) {
+  const user = await getAuthenticatedUser();
+
+  if (!user) {
+    return createUnauthorizedResponse();
+  }
+
+  const { chatId } = await context.params;
+  const deletedChat = await deleteChatSession(user.id, chatId);
+
+  if (!deletedChat) {
+    return Response.json({ error: "Chat not found." }, { status: 404 });
+  }
+
+  return Response.json({ chat: deletedChat });
 }

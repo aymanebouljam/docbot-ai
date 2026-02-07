@@ -9,6 +9,7 @@ import { buildChatTitleFromMessage } from "@/server/chat-title";
 import type { MedicalContextMessage } from "@/server/groq";
 import {
   createChat,
+  deleteChat,
   getChatById,
   listChats,
   saveMessage,
@@ -205,4 +206,11 @@ export async function loadChat(
 
 export async function loadChatList(userId: string): Promise<ChatListItem[]> {
   return listChats(userId);
+}
+
+export async function deleteChatSession(
+  userId: string,
+  chatId: string
+): Promise<ChatWithMessages | null> {
+  return deleteChat(chatId, userId);
 }
