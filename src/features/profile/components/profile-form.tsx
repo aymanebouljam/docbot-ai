@@ -207,6 +207,7 @@ export function ProfileForm({ initialUser }: ProfileFormProps) {
                     <input
                       type="password"
                       className="w-full rounded-2xl border border-emerald-100 bg-white px-4 py-3 text-sm outline-none transition focus:border-emerald-400"
+                      placeholder="••••••••"
                       value={currentPassword}
                       onChange={(event) => setCurrentPassword(event.target.value)}
                     />
@@ -219,6 +220,7 @@ export function ProfileForm({ initialUser }: ProfileFormProps) {
                     <input
                       type="password"
                       className="w-full rounded-2xl border border-emerald-100 bg-white px-4 py-3 text-sm outline-none transition focus:border-emerald-400"
+                      placeholder="••••••••"
                       value={newPassword}
                       onChange={(event) => setNewPassword(event.target.value)}
                     />
