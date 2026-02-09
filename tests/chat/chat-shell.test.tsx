@@ -377,7 +377,7 @@ describe("chat shell", () => {
     expect(replace).toHaveBeenCalledWith("/?chatId=chat-11", { scroll: false });
   });
 
-  it("opens sidebar chat actions and deletes a saved conversation", async () => {
+  it("deletes a saved conversation from the sidebar trash action", async () => {
     const chats = [
       {
         id: "chat-10",
@@ -425,10 +425,9 @@ describe("chat shell", () => {
 
     fireEvent.click(
       screen.getByRole("button", {
-        name: /conversation actions for what causes anemia/i,
+        name: /delete conversation what causes anemia/i,
       })
     );
-    fireEvent.click(screen.getByRole("menuitem", { name: /delete conversation/i }));
 
     expect(
       screen.getByRole("dialog", { name: /delete conversation/i })

@@ -17,6 +17,7 @@ import {
   SendHorizontal,
   Settings,
   Stethoscope,
+  Trash2,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -83,6 +84,16 @@ function buildUiMessage(input: {
   };
 }
 
+function dedupeMessages(messages: ChatMessage[]) {
+  const dedupedMessages = new Map<string, ChatMessage>();
+
+  for (const message of messages) {
+    dedupedMessages.set(message.id, message);
+  }
+
+  return [...dedupedMessages.values()];
+}
+
 export function ChatShell({
   initialChatId = null,
   currentUserEmail,
@@ -92,7 +103,6 @@ export function ChatShell({
   const router = useRouter();
   const profileMenuRef = useRef<HTMLDivElement | null>(null);
   const conversationMenuRef = useRef<HTMLDivElement | null>(null);
-  const sidebarChatMenuRef = useRef<HTMLDivElement | null>(null);
   const conversationEndRef = useRef<HTMLDivElement | null>(null);
   const [draft, setDraft] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -102,9 +112,6 @@ export function ChatShell({
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isConversationMenuOpen, setIsConversationMenuOpen] = useState(false);
-  const [openSidebarChatMenuId, setOpenSidebarChatMenuId] = useState<string | null>(
-    null
-  );
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [pendingDeleteChatId, setPendingDeleteChatId] = useState<string | null>(null);
   const [isResponding, setIsResponding] = useState(false);
@@ -126,6 +133,8 @@ export function ChatShell({
       .toLowerCase()
       .includes(normalizedChatSearch);
   });
+  const hasVisibleChats = filteredChats.length > 0;
+  const renderedMessages = dedupeMessages(messages);
 
   async function refreshChatList() {
     setIsLoadingChatList(true);
@@ -167,13 +176,6 @@ export function ChatShell({
       ) {
         setIsConversationMenuOpen(false);
       }
-
-      if (
-        openSidebarChatMenuId &&
-        !sidebarChatMenuRef.current?.contains(event.target as Node)
-      ) {
-        setOpenSidebarChatMenuId(null);
-      }
     }
 
     document.addEventListener("mousedown", handlePointerDown);
@@ -181,7 +183,7 @@ export function ChatShell({
     return () => {
       document.removeEventListener("mousedown", handlePointerDown);
     };
-  }, [isConversationMenuOpen, isProfileMenuOpen, openSidebarChatMenuId]);
+  }, [isConversationMenuOpen, isProfileMenuOpen]);
 
   useEffect(() => {
     setChatId(initialChatId);
@@ -212,7 +214,7 @@ export function ChatShell({
         }
 
         const nextMessages = mapPersistedChatMessages(payload.chat);
-        setMessages(nextMessages);
+        setMessages(dedupeMessages(nextMessages));
       } catch {
         if (!isActive) {
           return;
@@ -279,7 +281,6 @@ export function ChatShell({
     setChatSearch("");
     setIsProfileMenuOpen(false);
     setIsConversationMenuOpen(false);
-    setOpenSidebarChatMenuId(null);
     setIsDeleteModalOpen(false);
     setPendingDeleteChatId(null);
     setErrorMessage(null);
@@ -296,7 +297,6 @@ export function ChatShell({
 
     setIsProfileMenuOpen(false);
     setIsConversationMenuOpen(false);
-    setOpenSidebarChatMenuId(null);
     setIsDeleteModalOpen(false);
     setPendingDeleteChatId(null);
     setErrorMessage(null);
@@ -308,7 +308,6 @@ export function ChatShell({
   function toggleSidebar() {
     setIsProfileMenuOpen(false);
     setIsConversationMenuOpen(false);
-    setOpenSidebarChatMenuId(null);
     setIsDeleteModalOpen(false);
     setPendingDeleteChatId(null);
     setIsSidebarCollapsed((currentState) => !currentState);
@@ -325,7 +324,6 @@ export function ChatShell({
 
   function requestDeleteConversation(targetChatId: string) {
     setIsConversationMenuOpen(false);
-    setOpenSidebarChatMenuId(null);
     setPendingDeleteChatId(targetChatId);
     setIsDeleteModalOpen(true);
   }
@@ -338,7 +336,6 @@ export function ChatShell({
     }
 
     setIsConversationMenuOpen(false);
-    setOpenSidebarChatMenuId(null);
     setIsDeleteModalOpen(false);
     setPendingDeleteChatId(null);
     setErrorMessage(null);
@@ -420,10 +417,12 @@ export function ChatShell({
           : []),
       ];
 
-      setMessages((currentMessages) => [
-        ...currentMessages.filter((message) => message.id !== optimisticMessageId),
-        ...nextMessages,
-      ]);
+      setMessages((currentMessages) =>
+        dedupeMessages([
+          ...currentMessages.filter((message) => message.id !== optimisticMessageId),
+          ...nextMessages,
+        ])
+      );
       await refreshChatList();
     } catch {
       setMessages((currentMessages) =>
@@ -467,7 +466,7 @@ export function ChatShell({
           }`}
         >
           <aside
-            className={`group/sidebar flex min-h-0 flex-col overflow-hidden border-r border-[#c9e3df] bg-[linear-gradient(180deg,_rgba(233,247,246,0.98)_0%,_rgba(203,232,228,0.98)_100%)] shadow-lg transition-all ${
+            className={`group/sidebar flex min-h-0 flex-col overflow-x-visible overflow-y-hidden border-r border-[#c9e3df] bg-[linear-gradient(180deg,_rgba(233,247,246,0.98)_0%,_rgba(203,232,228,0.98)_100%)] shadow-lg transition-all ${
               isSidebarCollapsed ? "px-2 py-2" : "px-3 py-2.5"
             }`}
             aria-label="Chat sidebar"
@@ -572,7 +571,11 @@ export function ChatShell({
                       <path d="m21 21-4.3-4.3" />
                     </svg>
                   </button>
-                  <div className="flex min-h-0 flex-1 flex-col rounded-[1.5rem] border border-base-200 bg-base-100 p-2">
+                  <div
+                    className={`flex min-h-0 flex-col rounded-[1.5rem] border border-base-200 bg-base-100 p-2 ${
+                      hasVisibleChats ? "flex-1" : "flex-none"
+                    }`}
+                  >
                     <p className="mb-2 text-center text-[10px] font-medium uppercase tracking-[0.2em] text-base-content/45">
                       Chats
                     </p>
@@ -645,7 +648,7 @@ export function ChatShell({
                     />
                   </label>
 
-                  <div className="flex min-h-0 flex-1 flex-col rounded-[1.5rem] border border-base-200 bg-base-100 py-3 px-4">
+                  <div className="flex min-h-0 flex-none flex-col rounded-[1.5rem] border border-base-200 bg-base-100 px-4 py-3">
                     <div className="mb-3 flex items-center justify-between gap-3">
                       <p className="text-xs font-medium uppercase tracking-[0.18em] text-base-content/45">
                         Your chats
@@ -664,13 +667,15 @@ export function ChatShell({
                       ) : null
                     ) : (
                       <nav
-                        className="scrollbar-none min-h-0 flex-1 space-y-2 overflow-y-auto"
+                        className={`scrollbar-none min-h-0 space-y-2 overflow-x-visible overflow-y-auto ${
+                          hasVisibleChats ? "max-h-[min(52vh,28rem)]" : ""
+                        }`}
                         aria-label="Saved conversations"
                       >
                         {filteredChats.map((chat) => (
                           <div
                             key={chat.id}
-                            className={`relative flex items-center gap-2 rounded-[1.25rem] border px-3 py-2 transition ${
+                            className={`flex items-center gap-2 rounded-[1.25rem] border px-3 py-2 transition ${
                               chat.id === chatId
                                 ? "border-emerald-200 bg-emerald-50 text-emerald-700"
                                 : "border-base-200 bg-base-100 hover:border-emerald-200 hover:bg-emerald-50/60"
@@ -686,56 +691,16 @@ export function ChatShell({
                                 {chat.title ?? "New medical chat"}
                               </p>
                             </button>
-                            <div
-                              className="relative shrink-0"
-                              ref={
-                                openSidebarChatMenuId === chat.id
-                                  ? sidebarChatMenuRef
-                                  : undefined
-                              }
+                            <button
+                              type="button"
+                              className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-base-content/60 transition hover:bg-base-200 hover:text-error"
+                              aria-label={`Delete conversation ${
+                                chat.title ?? "new medical chat"
+                              }`}
+                              onClick={() => requestDeleteConversation(chat.id)}
                             >
-                              <button
-                                type="button"
-                                className="grid h-9 w-9 place-items-center rounded-full text-base-content/60 transition hover:bg-base-200 hover:text-base-content"
-                                aria-label={`Conversation actions for ${
-                                  chat.title ?? "new medical chat"
-                                }`}
-                                aria-expanded={openSidebarChatMenuId === chat.id}
-                                aria-haspopup="menu"
-                                onClick={() =>
-                                  setOpenSidebarChatMenuId((currentState) =>
-                                    currentState === chat.id ? null : chat.id
-                                  )
-                                }
-                              >
-                                <EllipsisVertical
-                                  aria-hidden="true"
-                                  className="h-4 w-4"
-                                />
-                              </button>
-
-                              {openSidebarChatMenuId === chat.id ? (
-                                <div
-                                  className="absolute right-0 top-[calc(100%+0.35rem)] z-10 w-52 rounded-[1rem] border border-base-200 bg-base-100 p-2 shadow-xl"
-                                  role="menu"
-                                  aria-label={`Conversation menu for ${
-                                    chat.title ?? "new medical chat"
-                                  }`}
-                                >
-                                  <button
-                                    type="button"
-                                    className="flex w-full items-center justify-between rounded-[0.9rem] px-3 py-3 text-left text-sm text-error transition hover:bg-error/10"
-                                    role="menuitem"
-                                    onClick={() => requestDeleteConversation(chat.id)}
-                                  >
-                                    <span>Delete conversation</span>
-                                    <span className="text-xs text-base-content/45">
-                                      Now
-                                    </span>
-                                  </button>
-                                </div>
-                              ) : null}
-                            </div>
+                              <Trash2 aria-hidden="true" className="h-4 w-4" />
+                            </button>
                           </div>
                         ))}
                       </nav>
@@ -749,15 +714,26 @@ export function ChatShell({
               <div className="relative" ref={profileMenuRef}>
                 <button
                   type="button"
-                  aria-label={`${fallbackAccountLabel} settings`}
+                  aria-label={
+                    isSidebarCollapsed
+                      ? `${fallbackAccountLabel} avatar`
+                      : `${fallbackAccountLabel} settings`
+                  }
                   className={`flex rounded-[1.5rem] border border-base-200 bg-base-100 text-left transition hover:border-base-300 hover:bg-base-200 ${
                     isSidebarCollapsed
                       ? "w-full justify-center px-2 py-3"
                       : "w-full items-center gap-4 px-4 py-3.5"
                   }`}
-                  aria-expanded={isProfileMenuOpen}
-                  aria-haspopup="menu"
-                  onClick={() => setIsProfileMenuOpen((currentState) => !currentState)}
+                  aria-expanded={isSidebarCollapsed ? undefined : isProfileMenuOpen}
+                  aria-haspopup={isSidebarCollapsed ? undefined : "menu"}
+                  disabled={isSidebarCollapsed}
+                  onClick={() => {
+                    if (isSidebarCollapsed) {
+                      return;
+                    }
+
+                    setIsProfileMenuOpen((currentState) => !currentState);
+                  }}
                 >
                   <div className="avatar placeholder">
                     {currentUserImage ? (
@@ -787,10 +763,12 @@ export function ChatShell({
                       </p>
                     </div>
                   ) : null}
-                  <Settings
-                    aria-hidden="true"
-                    className="h-5 w-5 shrink-0 text-base-content/55"
-                  />
+                  {!isSidebarCollapsed ? (
+                    <Settings
+                      aria-hidden="true"
+                      className="h-5 w-5 shrink-0 text-base-content/55"
+                    />
+                  ) : null}
                 </button>
 
                 {isProfileMenuOpen ? (
@@ -922,9 +900,9 @@ export function ChatShell({
                       Ask a medical question to begin the chat.
                     </h3>
                     <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                      {SUGGESTED_MEDICAL_PROMPTS.slice(0, 4).map((prompt) => (
+                      {SUGGESTED_MEDICAL_PROMPTS.slice(0, 4).map((prompt, index) => (
                         <button
-                          key={prompt}
+                          key={`${prompt}-${index}`}
                           type="button"
                           className="rounded-[1.4rem] border border-emerald-200 bg-emerald-50 px-4 py-4 text-left text-sm leading-6 transition hover:border-emerald-300 hover:bg-emerald-100"
                           onClick={() => setDraft(prompt)}
@@ -937,7 +915,7 @@ export function ChatShell({
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {messages.map((message) => (
+                  {renderedMessages.map((message) => (
                     <article
                       key={message.id}
                       className={`chat flex flex-col ${

@@ -6,6 +6,8 @@ type RootErrorProps = {
 };
 
 export default function RootError({ error, reset }: RootErrorProps) {
+  console.error(error);
+
   return (
     <main className="grid min-h-screen place-items-center bg-base-200 px-6 py-12">
       <div className="w-full max-w-xl rounded-[2rem] border border-warning/30 bg-base-100 p-8 shadow-xl">
@@ -16,12 +18,9 @@ export default function RootError({ error, reset }: RootErrorProps) {
           DocBot AI hit an unexpected error.
         </h1>
         <p className="mt-4 text-sm leading-7 text-base-content/70">
-          Please try reloading the conversation. If the problem continues, check
-          the server logs and environment configuration before retrying.
+          Please try reloading the conversation. If the problem continues, try
+          again in a moment.
         </p>
-        <div className="mt-6 rounded-[1.25rem] border border-base-200 bg-base-200/60 p-4 text-sm text-base-content/70">
-          {error.message || "Unexpected application error."}
-        </div>
         <button
           type="button"
           className="btn btn-warning mt-6 rounded-full px-6"
