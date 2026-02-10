@@ -1,6 +1,4 @@
-import {
-  buildPromptInjectionFallbackResponse,
-} from "@/features/domain/fallback";
+import { buildPromptInjectionFallbackResponse } from "@/features/domain/fallback";
 import { detectPromptInjection } from "@/features/domain/injection";
 import { assessMedicalSafety } from "@/features/medical-safety/checker";
 import { buildUrgentMedicalResponse } from "@/features/medical-safety/response";
@@ -10,6 +8,7 @@ import type { MedicalContextMessage } from "@/server/groq";
 import {
   createChat,
   deleteChat,
+  deleteAllChats,
   getChatById,
   listChats,
   saveMessage,
@@ -211,6 +210,10 @@ export async function loadChatList(userId: string): Promise<ChatListItem[]> {
 export async function deleteChatSession(
   userId: string,
   chatId: string
-): Promise<ChatWithMessages | null> {
+){
   return deleteChat(chatId, userId);
+}
+
+export async function deleteAllChatSessions(userId: string) {
+  return deleteAllChats(userId);
 }

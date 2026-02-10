@@ -3,7 +3,10 @@ import { MessageRole } from "@/generated/prisma/enums";
 import { getPrismaClient } from "@/lib/prisma";
 
 export type ChatWithMessages = Chat & { messages: Message[] };
-export type ChatListItem = Pick<Chat, "id" | "title" | "updatedAt" | "createdAt">;
+export type ChatListItem = Pick<
+  Chat,
+  "id" | "title" | "updatedAt" | "createdAt"
+>;
 
 export type CreateChatInput = {
   userId: string;
@@ -132,5 +135,13 @@ export async function deleteChat(chatId: string, userId: string) {
 
   return prisma.chat.delete({
     where: { id: chatId },
+  });
+}
+
+export async function deleteAllChats(userId: string) {
+  const prisma = getPrismaClient();
+
+  return prisma.chat.deleteMany({
+    where: { userId },
   });
 }
