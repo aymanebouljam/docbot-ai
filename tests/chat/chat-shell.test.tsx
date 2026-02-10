@@ -70,7 +70,8 @@ describe("chat shell", () => {
             assistantMessage: {
               id: "assistant-1",
               role: "assistant",
-              content: "Low iron is commonly linked to blood loss or poor intake.",
+              content:
+                "Low iron is commonly linked to blood loss or poor intake.",
             },
             suggestedPrompts: [],
             safetyLevel: "standard",
@@ -92,7 +93,9 @@ describe("chat shell", () => {
   it("renders the chat input", async () => {
     render(<ChatShell />);
 
-    expect(screen.getByPlaceholderText(composerPlaceholder)).toBeInTheDocument();
+    expect(
+      screen.getByPlaceholderText(composerPlaceholder)
+    ).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /docbot/i })).toBeInTheDocument();
     await waitFor(() =>
       expect(screen.getByPlaceholderText(/search chats/i)).toBeInTheDocument()
@@ -107,9 +110,15 @@ describe("chat shell", () => {
     expect(
       screen.queryByPlaceholderText(/search chats/i)
     ).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /expand sidebar/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /new chat/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /search chats/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /expand sidebar/i })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /new chat/i })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /search chats/i })
+    ).toBeInTheDocument();
   });
 
   it("disables the send button when the textarea is empty", () => {
@@ -218,7 +227,11 @@ describe("chat shell", () => {
       expect(resolveMessages).not.toBeNull();
     });
 
-    resolveMessages?.(
+    const resolvePendingMessages = resolveMessages;
+
+    expect(resolvePendingMessages).not.toBeNull();
+
+    resolvePendingMessages!(
       new Response(
         JSON.stringify({
           userMessage: {
@@ -348,7 +361,8 @@ describe("chat shell", () => {
                 {
                   id: "assistant-11",
                   role: "assistant",
-                  content: "Yes. That reading is elevated and should be reviewed.",
+                  content:
+                    "Yes. That reading is elevated and should be reviewed.",
                 },
               ],
             },
@@ -391,10 +405,7 @@ describe("chat shell", () => {
       const url = typeof input === "string" ? input : input.toString();
 
       if (url === "/api/chats" && init?.method !== "DELETE") {
-        return new Response(
-          JSON.stringify({ chats }),
-          { status: 200 }
-        );
+        return new Response(JSON.stringify({ chats }), { status: 200 });
       }
 
       if (url === "/api/chats/chat-10" && init?.method === "DELETE") {
@@ -485,10 +496,7 @@ describe("chat shell", () => {
     await waitFor(() =>
       expect(
         screen.getByRole("button", { name: /^ALT follow-up$/i })
-      ).toHaveAttribute(
-        "aria-current",
-        "page"
-      )
+      ).toHaveAttribute("aria-current", "page")
     );
   });
 
@@ -546,17 +554,123 @@ describe("chat shell", () => {
   it("shows the profile menu from the settings button", async () => {
     render(<ChatShell />);
 
-    fireEvent.click(screen.getByRole("button", { name: /your account settings/i }));
+    fireEvent.click(
+      screen.getByRole("button", { name: /your account settings/i })
+    );
 
-    expect(screen.getByRole("menu", { name: /profile menu/i })).toBeInTheDocument();
-    expect(screen.getByRole("menuitem", { name: /profile/i })).toBeInTheDocument();
-    expect(screen.getByRole("menuitem", { name: /logout/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("menu", { name: /profile menu/i })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("menuitem", { name: /profile/i })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("menuitem", { name: /logout/i })
+    ).toBeInTheDocument();
+  });
+
+  it("downloads the current conversation transcript", async () => {
+    const createObjectUrl = vi.fn(() => "blob:test-download");
+    const revokeObjectUrl = vi.fn();
+    const anchorClick = vi.fn();
+    let downloadAnchor: HTMLAnchorElement | null = null;
+    const originalCreateObjectURL = URL.createObjectURL;
+    const originalRevokeObjectURL = URL.revokeObjectURL;
+    const originalCreateElement = document.createElement.bind(document);
+
+    URL.createObjectURL = createObjectUrl;
+    URL.revokeObjectURL = revokeObjectUrl;
+    document.createElement = vi.fn((tagName: string) => {
+      const element = originalCreateElement(tagName);
+
+      if (tagName === "a") {
+        element.click = anchorClick;
+        downloadAnchor = element as HTMLAnchorElement;
+      }
+
+      return element;
+    }) as typeof document.createElement;
+
+    global.fetch = vi.fn(async (input) => {
+      const url = typeof input === "string" ? input : input.toString();
+
+      if (url === "/api/chats") {
+        return new Response(
+          JSON.stringify({
+            chats: [
+              {
+                id: "chat-7",
+                title: "ALT follow-up",
+                updatedAt: "2026-03-30T00:00:00.000Z",
+                createdAt: "2026-03-30T00:00:00.000Z",
+              },
+            ],
+          }),
+          { status: 200 }
+        );
+      }
+
+      if (url === "/api/chats/chat-7") {
+        return new Response(
+          JSON.stringify({
+            chat: {
+              id: "chat-7",
+              title: "ALT follow-up",
+              messages: [
+                {
+                  id: "user-7",
+                  role: "user",
+                  content: "What does elevated ALT mean?",
+                },
+                {
+                  id: "assistant-7",
+                  role: "assistant",
+                  content: "It can point to liver irritation or inflammation.",
+                },
+              ],
+            },
+          }),
+          { status: 200 }
+        );
+      }
+
+      return new Response(JSON.stringify({ error: "Unexpected request" }), {
+        status: 404,
+      });
+    });
+
+    render(<ChatShell initialChatId="chat-7" />);
+
+    await waitFor(() =>
+      expect(
+        screen.getByText(/it can point to liver irritation or inflammation/i)
+      ).toBeInTheDocument()
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /download conversation/i })
+    );
+
+    expect(createObjectUrl).toHaveBeenCalledOnce();
+    expect(anchorClick).toHaveBeenCalledOnce();
+
+    expect(downloadAnchor).not.toBeNull();
+    expect((downloadAnchor as HTMLAnchorElement).download).toBe(
+      "alt-follow-up.txt"
+    );
+    expect(revokeObjectUrl).toHaveBeenCalledWith("blob:test-download");
+
+    URL.createObjectURL = originalCreateObjectURL;
+    URL.revokeObjectURL = originalRevokeObjectURL;
+    document.createElement = originalCreateElement;
   });
 
   it("opens the profile page from the profile menu", async () => {
     render(<ChatShell />);
 
-    fireEvent.click(screen.getByRole("button", { name: /your account settings/i }));
+    fireEvent.click(
+      screen.getByRole("button", { name: /your account settings/i })
+    );
     fireEvent.click(screen.getByRole("menuitem", { name: /profile/i }));
 
     expect(push).toHaveBeenCalledWith("/profile");
@@ -565,10 +679,97 @@ describe("chat shell", () => {
   it("signs out from the profile menu", async () => {
     render(<ChatShell />);
 
-    fireEvent.click(screen.getByRole("button", { name: /your account settings/i }));
+    fireEvent.click(
+      screen.getByRole("button", { name: /your account settings/i })
+    );
     fireEvent.click(screen.getByRole("menuitem", { name: /logout/i }));
 
     expect(signOut).toHaveBeenCalledWith({ callbackUrl: "/sign-in" });
+  });
+
+  it("deletes all conversations from the settings menu", async () => {
+    const chats = [
+      {
+        id: "chat-7",
+        title: "ALT follow-up",
+        updatedAt: "2026-03-30T00:00:00.000Z",
+        createdAt: "2026-03-30T00:00:00.000Z",
+      },
+    ];
+
+    global.fetch = vi.fn(async (input, init?: RequestInit) => {
+      const url = typeof input === "string" ? input : input.toString();
+
+      if (
+        url === "/api/chats" &&
+        init?.method !== "POST" &&
+        init?.method !== "DELETE"
+      ) {
+        return new Response(JSON.stringify({ chats }), { status: 200 });
+      }
+
+      if (url === "/api/chats" && init?.method === "DELETE") {
+        chats.splice(0, chats.length);
+        return new Response(JSON.stringify({ deletedCount: 1 }), {
+          status: 200,
+        });
+      }
+
+      if (url === "/api/chats/chat-7") {
+        return new Response(
+          JSON.stringify({
+            chat: {
+              id: "chat-7",
+              title: "ALT follow-up",
+              messages: [
+                {
+                  id: "user-7",
+                  role: "user",
+                  content: "What does elevated ALT mean?",
+                },
+              ],
+            },
+          }),
+          { status: 200 }
+        );
+      }
+
+      return new Response(JSON.stringify({ error: "Unexpected request" }), {
+        status: 404,
+      });
+    });
+
+    render(<ChatShell initialChatId="chat-7" />);
+
+    await waitFor(() =>
+      expect(
+        screen.getByText(/what does elevated ALT mean/i)
+      ).toBeInTheDocument()
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /your account settings/i })
+    );
+    fireEvent.click(
+      screen.getByRole("menuitem", { name: /delete all conversations/i })
+    );
+
+    expect(
+      screen.getByRole("dialog", { name: /delete all conversations/i })
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /^delete$/i }));
+
+    await waitFor(() =>
+      expect(replace).toHaveBeenCalledWith("/", { scroll: false })
+    );
+    await waitFor(() =>
+      expect(
+        screen.getByRole("heading", {
+          name: /ask a medical question to begin the chat/i,
+        })
+      ).toBeInTheDocument()
+    );
   });
 
   it("starts a new chat from the sidebar action", async () => {
@@ -618,7 +819,9 @@ describe("chat shell", () => {
     render(<ChatShell initialChatId="chat-7" />);
 
     await waitFor(() =>
-      expect(screen.getByText(/what does elevated ALT mean/i)).toBeInTheDocument()
+      expect(
+        screen.getByText(/what does elevated ALT mean/i)
+      ).toBeInTheDocument()
     );
 
     fireEvent.click(screen.getByRole("button", { name: /new chat/i }));
@@ -692,13 +895,17 @@ describe("chat shell", () => {
     render(<ChatShell initialChatId="chat-7" />);
 
     await waitFor(() =>
-      expect(screen.getByText(/what does elevated ALT mean/i)).toBeInTheDocument()
+      expect(
+        screen.getByText(/what does elevated ALT mean/i)
+      ).toBeInTheDocument()
     );
 
     fireEvent.click(
       screen.getByRole("button", { name: /current conversation actions/i })
     );
-    fireEvent.click(screen.getByRole("menuitem", { name: /delete conversation/i }));
+    fireEvent.click(
+      screen.getByRole("menuitem", { name: /delete conversation/i })
+    );
     expect(
       screen.getByRole("dialog", { name: /delete conversation/i })
     ).toBeInTheDocument();
@@ -764,13 +971,17 @@ describe("chat shell", () => {
     render(<ChatShell initialChatId="chat-7" />);
 
     await waitFor(() =>
-      expect(screen.getByText(/what does elevated ALT mean/i)).toBeInTheDocument()
+      expect(
+        screen.getByText(/what does elevated ALT mean/i)
+      ).toBeInTheDocument()
     );
 
     fireEvent.click(
       screen.getByRole("button", { name: /current conversation actions/i })
     );
-    fireEvent.click(screen.getByRole("menuitem", { name: /delete conversation/i }));
+    fireEvent.click(
+      screen.getByRole("menuitem", { name: /delete conversation/i })
+    );
 
     expect(
       screen.getByRole("dialog", { name: /delete conversation/i })

@@ -1,5 +1,8 @@
-import { DELETE as DELETE_CHAT, GET as GET_CHAT } from "@/app/api/chats/[chatId]/route";
-import { GET, POST } from "@/app/api/chats/route";
+import {
+  DELETE as DELETE_CHAT,
+  GET as GET_CHAT,
+} from "@/app/api/chats/[chatId]/route";
+import { DELETE as DELETE_ALL_CHATS, GET, POST } from "@/app/api/chats/route";
 import { MAX_CHAT_TITLE_LENGTH } from "@/server/validation";
 import { createChatSession } from "@/server/chat-service";
 import {
@@ -94,6 +97,33 @@ describe("chat list route", () => {
     expect(response.status).toBe(401);
   });
 
+  it("deletes all chats for the authenticated user", async () => {
+    const { user } = await createTestUser({
+      id: "test-user-id",
+      email: "user@example.com",
+    });
+
+    await createChatSession(user.id, "First");
+    await createChatSession(user.id, "Second");
+
+    const response = await DELETE_ALL_CHATS(
+      new Request("http://localhost/api/chats", {
+        method: "DELETE",
+      })
+    );
+    const body = (await response.json()) as { deletedCount: number };
+
+    expect(response.status).toBe(200);
+    expect(body.deletedCount).toBe(2);
+
+    const chatsResponse = await GET();
+    const chatsBody = (await chatsResponse.json()) as {
+      chats: Array<{ id: string }>;
+    };
+
+    expect(chatsBody.chats).toHaveLength(0);
+  });
+
   it("deletes the requested chat", async () => {
     const { user } = await createTestUser({
       id: "test-user-id",
@@ -114,9 +144,12 @@ describe("chat list route", () => {
     expect(response.status).toBe(200);
     expect(body.chat.id).toBe(chat.id);
 
-    const deletedChatResponse = await GET_CHAT(new Request(`http://localhost/api/chats/${chat.id}`), {
-      params: Promise.resolve({ chatId: chat.id }),
-    });
+    const deletedChatResponse = await GET_CHAT(
+      new Request(`http://localhost/api/chats/${chat.id}`),
+      {
+        params: Promise.resolve({ chatId: chat.id }),
+      }
+    );
     const chatsResponse = await GET();
     const chatsBody = (await chatsResponse.json()) as {
       chats: Array<{ id: string }>;

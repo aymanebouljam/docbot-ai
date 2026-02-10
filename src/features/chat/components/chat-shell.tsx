@@ -65,6 +65,8 @@ type PostMessageResponse = {
   safetyLevel?: "standard" | "urgent";
 };
 
+type DeleteScope = "single" | "all";
+
 function buildUiMessage(input: {
   id: string;
   role: "user" | "assistant";
@@ -94,6 +96,33 @@ function dedupeMessages(messages: ChatMessage[]) {
   return [...dedupedMessages.values()];
 }
 
+function buildConversationExport(title: string, messages: ChatMessage[]) {
+  const lines = [
+    "DocBot Conversation",
+    `Title: ${title}`,
+    `Exported: ${new Date().toISOString()}`,
+    "",
+  ];
+
+  for (const message of messages) {
+    lines.push(`${message.role === "user" ? "You" : "DocBot AI"}:`);
+    lines.push(message.content);
+    lines.push("");
+  }
+
+  return lines.join("\n");
+}
+
+function buildConversationFilename(title: string) {
+  const normalizedTitle = title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60);
+
+  return `${normalizedTitle || "docbot-conversation"}.txt`;
+}
+
 export function ChatShell({
   initialChatId = null,
   currentUserEmail,
@@ -113,9 +142,15 @@ export function ChatShell({
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isConversationMenuOpen, setIsConversationMenuOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [pendingDeleteChatId, setPendingDeleteChatId] = useState<string | null>(null);
+  const [pendingDeleteChatId, setPendingDeleteChatId] = useState<string | null>(
+    null
+  );
+  const [pendingDeleteScope, setPendingDeleteScope] =
+    useState<DeleteScope>("single");
   const [isResponding, setIsResponding] = useState(false);
-  const [isLoadingHistory, setIsLoadingHistory] = useState(Boolean(initialChatId));
+  const [isLoadingHistory, setIsLoadingHistory] = useState(
+    Boolean(initialChatId)
+  );
   const [isLoadingChatList, setIsLoadingChatList] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const deferredChatSearch = useDeferredValue(chatSearch);
@@ -135,6 +170,9 @@ export function ChatShell({
   });
   const hasVisibleChats = filteredChats.length > 0;
   const renderedMessages = dedupeMessages(messages);
+  const activeChatTitle =
+    chatList.find((chat) => chat.id === chatId)?.title?.trim() ||
+    "DocBot conversation";
 
   async function refreshChatList() {
     setIsLoadingChatList(true);
@@ -283,6 +321,7 @@ export function ChatShell({
     setIsConversationMenuOpen(false);
     setIsDeleteModalOpen(false);
     setPendingDeleteChatId(null);
+    setPendingDeleteScope("single");
     setErrorMessage(null);
     setIsLoadingHistory(false);
     startTransition(() => {
@@ -299,6 +338,7 @@ export function ChatShell({
     setIsConversationMenuOpen(false);
     setIsDeleteModalOpen(false);
     setPendingDeleteChatId(null);
+    setPendingDeleteScope("single");
     setErrorMessage(null);
     startTransition(() => {
       router.replace(`/?chatId=${nextChatId}`, { scroll: false });
@@ -310,6 +350,7 @@ export function ChatShell({
     setIsConversationMenuOpen(false);
     setIsDeleteModalOpen(false);
     setPendingDeleteChatId(null);
+    setPendingDeleteScope("single");
     setIsSidebarCollapsed((currentState) => !currentState);
   }
 
@@ -325,25 +366,39 @@ export function ChatShell({
   function requestDeleteConversation(targetChatId: string) {
     setIsConversationMenuOpen(false);
     setPendingDeleteChatId(targetChatId);
+    setPendingDeleteScope("single");
+    setIsDeleteModalOpen(true);
+  }
+
+  function requestDeleteAllConversations() {
+    setIsProfileMenuOpen(false);
+    setPendingDeleteChatId(null);
+    setPendingDeleteScope("all");
     setIsDeleteModalOpen(true);
   }
 
   async function handleDeleteConversation() {
-    const targetChatId = pendingDeleteChatId ?? chatId;
-
-    if (!targetChatId) {
-      return;
-    }
-
     setIsConversationMenuOpen(false);
+    setIsProfileMenuOpen(false);
     setIsDeleteModalOpen(false);
-    setPendingDeleteChatId(null);
     setErrorMessage(null);
 
     try {
-      const response = await fetch(`/api/chats/${targetChatId}`, {
-        method: "DELETE",
-      });
+      const targetChatId = pendingDeleteChatId ?? chatId;
+      const response =
+        pendingDeleteScope === "all"
+          ? await fetch("/api/chats", {
+              method: "DELETE",
+            })
+          : targetChatId
+            ? await fetch(`/api/chats/${targetChatId}`, {
+                method: "DELETE",
+              })
+            : null;
+
+      if (!response) {
+        return;
+      }
 
       if (!response.ok) {
         throw new Error("Unable to delete this conversation.");
@@ -351,18 +406,46 @@ export function ChatShell({
 
       setMessages([]);
       setDraft("");
-      if (targetChatId === chatId) {
+      if (pendingDeleteScope === "all" || targetChatId === chatId) {
         setChatId(null);
       }
       await refreshChatList();
-      if (targetChatId === chatId) {
+      if (pendingDeleteScope === "all" || targetChatId === chatId) {
         startTransition(() => {
           router.replace("/", { scroll: false });
         });
       }
     } catch {
-      setErrorMessage("Unable to delete this conversation right now.");
+      setErrorMessage(
+        pendingDeleteScope === "all"
+          ? "Unable to delete your conversations right now."
+          : "Unable to delete this conversation right now."
+      );
+    } finally {
+      setPendingDeleteChatId(null);
+      setPendingDeleteScope("single");
     }
+  }
+
+  function handleDownloadConversation() {
+    if (renderedMessages.length === 0) {
+      return;
+    }
+
+    const exportText = buildConversationExport(
+      activeChatTitle,
+      renderedMessages
+    );
+    const blob = new Blob([exportText], {
+      type: "text/plain;charset=utf-8",
+    });
+    const objectUrl = URL.createObjectURL(blob);
+    const downloadLink = document.createElement("a");
+
+    downloadLink.href = objectUrl;
+    downloadLink.download = buildConversationFilename(activeChatTitle);
+    downloadLink.click();
+    URL.revokeObjectURL(objectUrl);
   }
 
   async function submitPrompt(prompt: string) {
@@ -419,7 +502,9 @@ export function ChatShell({
 
       setMessages((currentMessages) =>
         dedupeMessages([
-          ...currentMessages.filter((message) => message.id !== optimisticMessageId),
+          ...currentMessages.filter(
+            (message) => message.id !== optimisticMessageId
+          ),
           ...nextMessages,
         ])
       );
@@ -428,7 +513,9 @@ export function ChatShell({
       setMessages((currentMessages) =>
         currentMessages.filter((message) => message.id !== optimisticMessageId)
       );
-      setErrorMessage("Unable to send your message right now. Please try again.");
+      setErrorMessage(
+        "Unable to send your message right now. Please try again."
+      );
     } finally {
       setIsResponding(false);
     }
@@ -471,10 +558,14 @@ export function ChatShell({
             }`}
             aria-label="Chat sidebar"
           >
-            <div className={`mb-4 ${isSidebarCollapsed ? "px-0.5" : "px-0.5 py-0.5"}`}>
+            <div
+              className={`mb-4 ${isSidebarCollapsed ? "px-0.5" : "px-0.5 py-0.5"}`}
+            >
               <div
                 className={`group/logo relative flex ${
-                  isSidebarCollapsed ? "justify-center" : "items-center justify-between"
+                  isSidebarCollapsed
+                    ? "justify-center"
+                    : "items-center justify-between"
                 }`}
               >
                 {isSidebarCollapsed ? (
@@ -597,7 +688,9 @@ export function ChatShell({
                             key={chat.id}
                             type="button"
                             aria-label={chat.title ?? "New medical chat"}
-                            aria-current={chat.id === chatId ? "page" : undefined}
+                            aria-current={
+                              chat.id === chatId ? "page" : undefined
+                            }
                             className={`btn btn-square w-full rounded-2xl border ${
                               chat.id === chatId
                                 ? "border-emerald-200 bg-emerald-50 text-emerald-700"
@@ -658,7 +751,9 @@ export function ChatShell({
                       </p>
                     </div>
                     {isLoadingChatList ? (
-                      <p className="text-sm text-base-content/60">Loading conversations...</p>
+                      <p className="text-sm text-base-content/60">
+                        Loading conversations...
+                      </p>
                     ) : filteredChats.length === 0 ? (
                       chatSearch.trim() ? (
                         <p className="text-sm leading-6 text-base-content/60">
@@ -683,7 +778,9 @@ export function ChatShell({
                           >
                             <button
                               type="button"
-                              aria-current={chat.id === chatId ? "page" : undefined}
+                              aria-current={
+                                chat.id === chatId ? "page" : undefined
+                              }
                               className="min-w-0 flex-1 px-1 py-1 text-left"
                               onClick={() => handleSelectChat(chat.id)}
                             >
@@ -724,7 +821,9 @@ export function ChatShell({
                       ? "w-full justify-center px-2 py-3"
                       : "w-full items-center gap-4 px-4 py-3.5"
                   }`}
-                  aria-expanded={isSidebarCollapsed ? undefined : isProfileMenuOpen}
+                  aria-expanded={
+                    isSidebarCollapsed ? undefined : isProfileMenuOpen
+                  }
                   aria-haspopup={isSidebarCollapsed ? undefined : "menu"}
                   disabled={isSidebarCollapsed}
                   onClick={() => {
@@ -795,6 +894,17 @@ export function ChatShell({
                       type="button"
                       className="flex w-full items-center justify-between rounded-[1rem] px-3 py-3 text-left text-sm text-error transition hover:bg-error/10"
                       role="menuitem"
+                      onClick={requestDeleteAllConversations}
+                    >
+                      <span>Delete all conversations</span>
+                      <span className="text-xs text-base-content/45">
+                        Reset
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      className="flex w-full items-center justify-between rounded-[1rem] px-3 py-3 text-left text-sm text-error transition hover:bg-error/10"
+                      role="menuitem"
                       onClick={() => void signOut({ callbackUrl: "/sign-in" })}
                     >
                       <span>Logout</span>
@@ -831,8 +941,14 @@ export function ChatShell({
                 <div className="flex items-center gap-1.5">
                   <button
                     type="button"
-                    className="grid h-11 w-11 place-items-center rounded-[0.65rem] text-base-content transition hover:bg-base-200"
+                    className={`grid h-11 w-11 place-items-center rounded-[0.65rem] transition ${
+                      renderedMessages.length === 0
+                        ? "cursor-not-allowed text-base-content/30"
+                        : "text-base-content hover:bg-base-200"
+                    }`}
                     aria-label="Download conversation"
+                    disabled={renderedMessages.length === 0}
+                    onClick={handleDownloadConversation}
                   >
                     <Download aria-hidden="true" className="h-5 w-5" />
                   </button>
@@ -844,10 +960,15 @@ export function ChatShell({
                       aria-expanded={isConversationMenuOpen}
                       aria-haspopup="menu"
                       onClick={() =>
-                        setIsConversationMenuOpen((currentState) => !currentState)
+                        setIsConversationMenuOpen(
+                          (currentState) => !currentState
+                        )
                       }
                     >
-                      <EllipsisVertical aria-hidden="true" className="h-5 w-5" />
+                      <EllipsisVertical
+                        aria-hidden="true"
+                        className="h-5 w-5"
+                      />
                     </button>
 
                     {isConversationMenuOpen ? (
@@ -900,16 +1021,18 @@ export function ChatShell({
                       Ask a medical question to begin the chat.
                     </h3>
                     <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                      {SUGGESTED_MEDICAL_PROMPTS.slice(0, 4).map((prompt, index) => (
-                        <button
-                          key={`${prompt}-${index}`}
-                          type="button"
-                          className="rounded-[1.4rem] border border-emerald-200 bg-emerald-50 px-4 py-4 text-left text-sm leading-6 transition hover:border-emerald-300 hover:bg-emerald-100"
-                          onClick={() => setDraft(prompt)}
-                        >
-                          {prompt}
-                        </button>
-                      ))}
+                      {SUGGESTED_MEDICAL_PROMPTS.slice(0, 4).map(
+                        (prompt, index) => (
+                          <button
+                            key={`${prompt}-${index}`}
+                            type="button"
+                            className="rounded-[1.4rem] border border-emerald-200 bg-emerald-50 px-4 py-4 text-left text-sm leading-6 transition hover:border-emerald-300 hover:bg-emerald-100"
+                            onClick={() => setDraft(prompt)}
+                          >
+                            {prompt}
+                          </button>
+                        )
+                      )}
                     </div>
                   </div>
                 </div>
@@ -999,19 +1122,24 @@ export function ChatShell({
                     type="submit"
                     aria-label="Send message"
                     className={`absolute bottom-3 right-3 grid h-10 w-10 place-items-center rounded-full transition ${
-                      draft.trim().length === 0 || isResponding || isLoadingHistory
+                      draft.trim().length === 0 ||
+                      isResponding ||
+                      isLoadingHistory
                         ? "cursor-not-allowed bg-base-200 text-base-content/35"
                         : "bg-emerald-600 text-white shadow-sm hover:bg-emerald-700"
                     }`}
                     disabled={
-                      draft.trim().length === 0 || isResponding || isLoadingHistory
+                      draft.trim().length === 0 ||
+                      isResponding ||
+                      isLoadingHistory
                     }
                   >
                     <SendHorizontal aria-hidden="true" className="h-4 w-4" />
                   </button>
                 </div>
                 <p className="mt-3 text-center text-xs leading-5 text-base-content/55">
-                  DocBot provides medical education only and does not replace professional care.
+                  DocBot provides medical education only and does not replace
+                  professional care.
                 </p>
               </div>
             </form>
@@ -1034,14 +1162,17 @@ export function ChatShell({
                     id="delete-conversation-title"
                     className="text-xl font-semibold tracking-tight"
                   >
-                    Delete conversation?
+                    {pendingDeleteScope === "all"
+                      ? "Delete all conversations?"
+                      : "Delete conversation?"}
                   </h2>
                   <p
                     id="delete-conversation-description"
                     className="mt-3 text-sm leading-6 text-base-content/70"
                   >
-                    This will permanently remove this conversation and its
-                    messages from your chat history.
+                    {pendingDeleteScope === "all"
+                      ? "This will permanently remove every saved conversation and message from your chat history."
+                      : "This will permanently remove this conversation and its messages from your chat history."}
                   </p>
                   <div className="mt-6 flex justify-end gap-3">
                     <button
@@ -1062,7 +1193,6 @@ export function ChatShell({
                 </div>
               </div>
             ) : null}
-
           </main>
         </div>
       </div>
