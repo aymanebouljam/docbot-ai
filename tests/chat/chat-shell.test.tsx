@@ -227,11 +227,13 @@ describe("chat shell", () => {
       expect(resolveMessages).not.toBeNull();
     });
 
-    const resolvePendingMessages = resolveMessages;
+    if (!resolveMessages) {
+      throw new Error("Expected pending message resolver to exist.");
+    }
 
-    expect(resolvePendingMessages).not.toBeNull();
+    const resolvePendingMessages: (value: Response) => void = resolveMessages;
 
-    resolvePendingMessages!(
+    resolvePendingMessages(
       new Response(
         JSON.stringify({
           userMessage: {
@@ -573,7 +575,7 @@ describe("chat shell", () => {
     const createObjectUrl = vi.fn(() => "blob:test-download");
     const revokeObjectUrl = vi.fn();
     const anchorClick = vi.fn();
-    let downloadAnchor: HTMLAnchorElement | null = null;
+    let downloadAnchor: HTMLAnchorElement | undefined;
     const originalCreateObjectURL = URL.createObjectURL;
     const originalRevokeObjectURL = URL.revokeObjectURL;
     const originalCreateElement = document.createElement.bind(document);
@@ -654,10 +656,11 @@ describe("chat shell", () => {
     expect(createObjectUrl).toHaveBeenCalledOnce();
     expect(anchorClick).toHaveBeenCalledOnce();
 
-    expect(downloadAnchor).not.toBeNull();
-    expect((downloadAnchor as HTMLAnchorElement).download).toBe(
-      "alt-follow-up.txt"
-    );
+    if (!downloadAnchor) {
+      throw new Error("Expected download anchor to be created.");
+    }
+
+    expect(downloadAnchor.download).toBe("alt-follow-up.txt");
     expect(revokeObjectUrl).toHaveBeenCalledWith("blob:test-download");
 
     URL.createObjectURL = originalCreateObjectURL;

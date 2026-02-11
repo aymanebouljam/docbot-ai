@@ -37,7 +37,10 @@ export async function PATCH(request: Request) {
 
   if (!parsedBody.success) {
     return Response.json(
-      { error: "Invalid profile payload.", details: parsedBody.error.flatten() },
+      {
+        error: "Invalid profile payload.",
+        details: parsedBody.error.flatten(),
+      },
       { status: 400 }
     );
   }

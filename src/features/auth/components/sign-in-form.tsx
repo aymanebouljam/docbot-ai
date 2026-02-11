@@ -8,9 +8,7 @@ type SignInFormProps = {
   callbackUrl: string;
 };
 
-export function SignInForm({
-  callbackUrl,
-}: SignInFormProps) {
+export function SignInForm({ callbackUrl }: SignInFormProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);

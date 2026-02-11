@@ -15,7 +15,9 @@ describe("profile page", () => {
   it("renders the editable profile form", async () => {
     render(await ProfilePage());
 
-    expect(screen.getByRole("heading", { name: /profile/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: /profile/i })
+    ).toBeInTheDocument();
     expect(screen.getByDisplayValue("Profile User")).toBeInTheDocument();
     expect(screen.getByDisplayValue("profile@example.com")).toBeInTheDocument();
     expect(

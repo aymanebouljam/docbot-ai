@@ -14,7 +14,10 @@ type ChatMessagesRouteContext = {
   params: Promise<{ chatId: string }>;
 };
 
-export async function POST(request: Request, context: ChatMessagesRouteContext) {
+export async function POST(
+  request: Request,
+  context: ChatMessagesRouteContext
+) {
   const user = await getAuthenticatedUser();
 
   if (!user) {
@@ -22,12 +25,16 @@ export async function POST(request: Request, context: ChatMessagesRouteContext) 
   }
 
   const { chatId } = await context.params;
-  const rateLimit = checkRateLimit({ request, scope: `chat-message:${chatId}` });
+  const rateLimit = checkRateLimit({
+    request,
+    scope: `chat-message:${chatId}`,
+  });
 
   if (!rateLimit.allowed) {
     return Response.json(
       {
-        error: "Too many messages sent too quickly. Please wait a moment and try again.",
+        error:
+          "Too many messages sent too quickly. Please wait a moment and try again.",
       },
       {
         status: 429,
@@ -43,7 +50,10 @@ export async function POST(request: Request, context: ChatMessagesRouteContext) 
 
   if (!parsedBody.success) {
     return Response.json(
-      { error: "Invalid message payload.", details: parsedBody.error.flatten() },
+      {
+        error: "Invalid message payload.",
+        details: parsedBody.error.flatten(),
+      },
       { status: 400 }
     );
   }

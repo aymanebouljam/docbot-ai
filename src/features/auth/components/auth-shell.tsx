@@ -9,11 +9,7 @@ type AuthShellProps = {
   children: ReactNode;
 };
 
-export function AuthShell({
-  title,
-  description,
-  children,
-}: AuthShellProps) {
+export function AuthShell({ title, description, children }: AuthShellProps) {
   return (
     <main className="min-h-screen bg-[#f4f7f6] text-[#0f172a]">
       <div className="grid min-h-screen lg:grid-cols-[minmax(0,1.1fr)_minmax(420px,0.9fr)]">
@@ -51,7 +47,9 @@ export function AuthShell({
             <div className="mx-auto flex w-full max-w-md flex-1 items-center">
               <div className="w-full">
                 <div className="mb-8">
-                  <p className="text-sm font-medium text-[#6b7280]">Get started</p>
+                  <p className="text-sm font-medium text-[#6b7280]">
+                    Get started
+                  </p>
                   <h1 className="mt-3 text-3xl font-semibold tracking-tight text-[#111827] sm:text-[2.2rem]">
                     {title}
                   </h1>

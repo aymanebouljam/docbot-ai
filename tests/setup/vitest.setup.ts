@@ -27,7 +27,11 @@ if (!globalForTests.databasePrepared) {
     .sort((left, right) => left.localeCompare(right));
 
   for (const directory of migrationDirectories) {
-    const migrationPath = path.join(MIGRATIONS_PATH, directory, "migration.sql");
+    const migrationPath = path.join(
+      MIGRATIONS_PATH,
+      directory,
+      "migration.sql"
+    );
     const migrationSql = fs.readFileSync(migrationPath, "utf8");
 
     database.exec(migrationSql);

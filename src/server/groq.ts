@@ -92,19 +92,22 @@ export async function generateMedicalAnswer(input: {
   });
 
   try {
-    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: process.env.GROQ_MODEL ?? DEFAULT_GROQ_MODEL,
-        messages,
-        temperature: 0.2,
-      }),
-      signal: controller.signal,
-    });
+    const response = await fetch(
+      "https://api.groq.com/openai/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: process.env.GROQ_MODEL ?? DEFAULT_GROQ_MODEL,
+          messages,
+          temperature: 0.2,
+        }),
+        signal: controller.signal,
+      }
+    );
 
     const data = (await response.json()) as GroqChatCompletionResponse;
 

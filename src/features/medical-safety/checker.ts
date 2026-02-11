@@ -7,11 +7,16 @@ export type SafetyAssessment = {
 const URGENT_SAFETY_RULES = [
   {
     label: "cardiopulmonary emergency",
-    patterns: [/\bchest pain\b/i, /\b(shortness of breath|trouble breathing|can't breathe|cannot breathe)\b/i],
+    patterns: [
+      /\bchest pain\b/i,
+      /\b(shortness of breath|trouble breathing|can't breathe|cannot breathe)\b/i,
+    ],
   },
   {
     label: "stroke symptoms",
-    patterns: [/\b(face drooping|slurred speech|one-sided weakness|arm weakness|stroke)\b/i],
+    patterns: [
+      /\b(face drooping|slurred speech|one-sided weakness|arm weakness|stroke)\b/i,
+    ],
   },
   {
     label: "self-harm crisis",
@@ -19,19 +24,30 @@ const URGENT_SAFETY_RULES = [
   },
   {
     label: "anaphylaxis",
-    patterns: [/\b(anaphylaxis|allergic reaction|throat swelling|swollen tongue)\b/i, /\b(trouble breathing|can't breathe|cannot breathe)\b/i],
+    patterns: [
+      /\b(anaphylaxis|allergic reaction|throat swelling|swollen tongue)\b/i,
+      /\b(trouble breathing|can't breathe|cannot breathe)\b/i,
+    ],
   },
   {
     label: "uncontrolled bleeding",
-    patterns: [/\b(uncontrolled bleeding|bleeding heavily|won't stop bleeding)\b/i],
+    patterns: [
+      /\b(uncontrolled bleeding|bleeding heavily|won't stop bleeding)\b/i,
+    ],
   },
   {
     label: "seizure emergency",
-    patterns: [/\b(seizure)\b/i, /\b(not waking up|won't wake up|turning blue|lasting more than five minutes)\b/i],
+    patterns: [
+      /\b(seizure)\b/i,
+      /\b(not waking up|won't wake up|turning blue|lasting more than five minutes)\b/i,
+    ],
   },
   {
     label: "infant emergency",
-    patterns: [/\b(infant|baby|newborn)\b/i, /\b(fever|not breathing|difficult to wake)\b/i],
+    patterns: [
+      /\b(infant|baby|newborn)\b/i,
+      /\b(fever|not breathing|difficult to wake)\b/i,
+    ],
   },
 ];
 

@@ -21,13 +21,12 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
     : resolvedSearchParams.callbackUrl;
 
   return (
-    <AuthShell
-      title="Log in"
-      description="Pick up your medical conversations."
-    >
-        <SignInForm
-          callbackUrl={callbackUrl && callbackUrl.startsWith("/") ? callbackUrl : "/"}
-        />
+    <AuthShell title="Log in" description="Pick up your medical conversations.">
+      <SignInForm
+        callbackUrl={
+          callbackUrl && callbackUrl.startsWith("/") ? callbackUrl : "/"
+        }
+      />
     </AuthShell>
   );
 }

@@ -31,7 +31,10 @@ export function ProfileForm({ initialUser }: ProfileFormProps) {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const initials = useMemo(() => getInitials(name || initialUser.name), [initialUser.name, name]);
+  const initials = useMemo(
+    () => getInitials(name || initialUser.name),
+    [initialUser.name, name]
+  );
 
   async function handlePhotoChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -78,12 +81,10 @@ export function ProfileForm({ initialUser }: ProfileFormProps) {
       }),
     });
 
-    const payload = (await response.json().catch(() => null)) as
-      | {
-          error?: string;
-          user?: { name: string; email: string; image: string | null };
-        }
-      | null;
+    const payload = (await response.json().catch(() => null)) as {
+      error?: string;
+      user?: { name: string; email: string; image: string | null };
+    } | null;
 
     if (!response.ok || !payload?.user) {
       setErrorMessage(payload?.error ?? "Unable to update your profile.");
@@ -150,7 +151,9 @@ export function ProfileForm({ initialUser }: ProfileFormProps) {
                 </label>
               </div>
 
-              <p className="mt-5 text-lg font-semibold text-slate-900">{name}</p>
+              <p className="mt-5 text-lg font-semibold text-slate-900">
+                {name}
+              </p>
               <p className="mt-1 text-sm text-slate-500">{email}</p>
 
               {image ? (
@@ -209,7 +212,9 @@ export function ProfileForm({ initialUser }: ProfileFormProps) {
                       className="w-full rounded-2xl border border-emerald-100 bg-white px-4 py-3 text-sm outline-none transition focus:border-emerald-400"
                       placeholder="••••••••"
                       value={currentPassword}
-                      onChange={(event) => setCurrentPassword(event.target.value)}
+                      onChange={(event) =>
+                        setCurrentPassword(event.target.value)
+                      }
                     />
                   </label>
 

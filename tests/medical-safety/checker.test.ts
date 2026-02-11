@@ -7,7 +7,9 @@ import {
 
 describe("medical safety checker", () => {
   it("detects urgent cardiopulmonary symptoms", () => {
-    const result = assessMedicalSafety("I have crushing chest pain and trouble breathing");
+    const result = assessMedicalSafety(
+      "I have crushing chest pain and trouble breathing"
+    );
 
     expect(result.level).toBe("urgent");
     expect(result.category).toBe("general_urgent");
@@ -15,7 +17,9 @@ describe("medical safety checker", () => {
   });
 
   it("detects self-harm crisis wording", () => {
-    const result = assessMedicalSafety("I feel suicidal and want to hurt myself");
+    const result = assessMedicalSafety(
+      "I feel suicidal and want to hurt myself"
+    );
 
     expect(result.level).toBe("urgent");
     expect(result.category).toBe("self_harm_crisis");
@@ -32,7 +36,9 @@ describe("medical safety checker", () => {
 
   it("builds the urgent escalation message", () => {
     expect(buildUrgentMedicalResponse()).toBe(URGENT_MEDICAL_RESPONSE);
-    expect(buildUrgentMedicalResponse()).toMatch(/seek immediate medical care now/i);
+    expect(buildUrgentMedicalResponse()).toMatch(
+      /seek immediate medical care now/i
+    );
   });
 
   it("builds a crisis-specific self-harm escalation message", () => {

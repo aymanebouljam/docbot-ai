@@ -29,9 +29,9 @@ export function RegisterForm() {
     });
 
     if (!response.ok) {
-      const payload = (await response.json().catch(() => null)) as
-        | { error?: string }
-        | null;
+      const payload = (await response.json().catch(() => null)) as {
+        error?: string;
+      } | null;
 
       setErrorMessage(
         payload?.error ?? "Unable to create your account right now."

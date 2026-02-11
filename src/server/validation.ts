@@ -54,7 +54,11 @@ export const registerUserRequestSchema = z.object({
           `Name must be ${MAX_USER_NAME_LENGTH} characters or fewer.`
         )
     ),
-  email: z.string().trim().email().transform((value) => value.toLowerCase()),
+  email: z
+    .string()
+    .trim()
+    .email()
+    .transform((value) => value.toLowerCase()),
   password: z
     .string()
     .min(
@@ -98,13 +102,19 @@ export const updateProfileRequestSchema = z
             `Name must be ${MAX_USER_NAME_LENGTH} characters or fewer.`
           )
       ),
-    email: z.string().trim().email().transform((value) => value.toLowerCase()),
+    email: z
+      .string()
+      .trim()
+      .email()
+      .transform((value) => value.toLowerCase()),
     image: optionalProfileImageSchema,
     currentPassword: z.string().optional(),
     newPassword: z.string().optional(),
   })
   .superRefine((value, ctx) => {
-    const wantsPasswordChange = Boolean(value.currentPassword || value.newPassword);
+    const wantsPasswordChange = Boolean(
+      value.currentPassword || value.newPassword
+    );
 
     if (!wantsPasswordChange) {
       return;

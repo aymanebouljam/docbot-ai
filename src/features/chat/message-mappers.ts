@@ -8,7 +8,9 @@ function getTone(content: string): ChatMessage["tone"] {
 export function mapPersistedChatMessages(chat: PersistedChat): ChatMessage[] {
   return chat.messages
     .filter(
-      (message): message is PersistedChat["messages"][number] & {
+      (
+        message
+      ): message is PersistedChat["messages"][number] & {
         role: "user" | "assistant";
       } => message.role === "user" || message.role === "assistant"
     )
@@ -16,6 +18,7 @@ export function mapPersistedChatMessages(chat: PersistedChat): ChatMessage[] {
       id: message.id,
       role: message.role,
       content: message.content,
-      tone: message.role === "assistant" ? getTone(message.content) : "standard",
+      tone:
+        message.role === "assistant" ? getTone(message.content) : "standard",
     }));
 }

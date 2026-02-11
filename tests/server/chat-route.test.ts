@@ -106,11 +106,7 @@ describe("chat list route", () => {
     await createChatSession(user.id, "First");
     await createChatSession(user.id, "Second");
 
-    const response = await DELETE_ALL_CHATS(
-      new Request("http://localhost/api/chats", {
-        method: "DELETE",
-      })
-    );
+    const response = await DELETE_ALL_CHATS();
     const body = (await response.json()) as { deletedCount: number };
 
     expect(response.status).toBe(200);

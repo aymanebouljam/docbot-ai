@@ -56,7 +56,9 @@ export const authOptions: NextAuthOptions = {
         session.user.name = token.name ?? session.user.name;
         session.user.email = token.email ?? session.user.email;
         session.user.image =
-          typeof token.picture === "string" ? token.picture : session.user.image;
+          typeof token.picture === "string"
+            ? token.picture
+            : session.user.image;
       }
 
       return session;

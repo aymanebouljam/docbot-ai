@@ -73,7 +73,8 @@ describe("groq integration", () => {
           choices: [
             {
               message: {
-                content: "High blood pressure can increase cardiovascular risk.",
+                content:
+                  "High blood pressure can increase cardiovascular risk.",
               },
             },
           ],

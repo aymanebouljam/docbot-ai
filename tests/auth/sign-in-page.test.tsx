@@ -15,9 +15,7 @@ describe("sign-in page", () => {
     ).toBeInTheDocument();
     expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /log in/i })
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /log in/i })).toBeInTheDocument();
     expect(
       screen.getByRole("link", { name: /sign up for free/i })
     ).toBeInTheDocument();

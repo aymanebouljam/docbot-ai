@@ -10,7 +10,10 @@ export async function POST(request: Request) {
 
   if (!parsedBody.success) {
     return Response.json(
-      { error: "Invalid registration payload.", details: parsedBody.error.flatten() },
+      {
+        error: "Invalid registration payload.",
+        details: parsedBody.error.flatten(),
+      },
       { status: 400 }
     );
   }
