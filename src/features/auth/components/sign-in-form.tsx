@@ -3,12 +3,14 @@
 import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { signIn } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 type SignInFormProps = {
   callbackUrl: string;
 };
 
 export function SignInForm({ callbackUrl }: SignInFormProps) {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -23,13 +25,16 @@ export function SignInForm({ callbackUrl }: SignInFormProps) {
       email,
       password,
       callbackUrl,
-      redirect: true,
+      redirect: false,
     });
 
-    if (result?.error) {
+    if (!result || result.error) {
       setErrorMessage("The email or password is incorrect.");
       setIsSubmitting(false);
+      return;
     }
+
+    router.push(result.url ?? callbackUrl);
   }
 
   return (
