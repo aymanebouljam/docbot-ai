@@ -4,15 +4,33 @@ import {
   registerUserRequestSchema,
 } from "@/server/validation";
 
+function getFirstValidationMessage(
+  fieldErrors: Record<string, string[] | undefined>,
+  formErrors: string[]
+) {
+  for (const messages of Object.values(fieldErrors)) {
+    if (messages?.[0]) {
+      return messages[0];
+    }
+  }
+
+  return formErrors[0] ?? "Unable to create your account right now.";
+}
+
 export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}));
   const parsedBody = parseRequestBody(registerUserRequestSchema, body);
 
   if (!parsedBody.success) {
+    const flattened = parsedBody.error.flatten();
+
     return Response.json(
       {
-        error: "Invalid registration payload.",
-        details: parsedBody.error.flatten(),
+        error: getFirstValidationMessage(
+          flattened.fieldErrors,
+          flattened.formErrors
+        ),
+        details: flattened,
       },
       { status: 400 }
     );

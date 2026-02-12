@@ -65,4 +65,26 @@ describe("register route", () => {
 
     expect(response.status).toBe(409);
   });
+
+  it("returns a specific validation message for invalid registration input", async () => {
+    const response = await POST(
+      new Request("http://localhost/api/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: "",
+          email: "not-an-email",
+          password: "short",
+        }),
+      })
+    );
+    const body = (await response.json()) as {
+      error: string;
+    };
+
+    expect(response.status).toBe(400);
+    expect(body.error).toBe("Name is required.");
+  });
 });
