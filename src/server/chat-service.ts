@@ -207,10 +207,7 @@ export async function loadChatList(userId: string): Promise<ChatListItem[]> {
   return listChats(userId);
 }
 
-export async function deleteChatSession(
-  userId: string,
-  chatId: string
-){
+export async function deleteChatSession(userId: string, chatId: string) {
   return deleteChat(chatId, userId);
 }
 
