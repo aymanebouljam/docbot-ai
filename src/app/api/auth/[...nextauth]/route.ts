@@ -1,7 +1,7 @@
-import NextAuth from "next-auth";
+export async function GET() {
+  return Response.json({ error: "Not found." }, { status: 404 });
+}
 
-import { authOptions } from "@/server/auth";
-
-const handler = NextAuth(authOptions);
-
-export { handler as GET, handler as POST };
+export async function POST() {
+  return Response.json({ error: "Not found." }, { status: 404 });
+}
