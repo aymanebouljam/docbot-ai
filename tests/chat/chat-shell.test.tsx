@@ -3,10 +3,9 @@ import userEvent from "@testing-library/user-event";
 
 import { ChatShell } from "@/features/chat/components/chat-shell";
 
-const { replace, push, signOut } = vi.hoisted(() => ({
+const { replace, push } = vi.hoisted(() => ({
   replace: vi.fn(),
   push: vi.fn(),
-  signOut: vi.fn(),
 }));
 
 vi.mock("next/navigation", () => ({
@@ -16,19 +15,22 @@ vi.mock("next/navigation", () => ({
   }),
 }));
 
-vi.mock("next-auth/react", () => ({
-  signOut,
-}));
-
 describe("chat shell", () => {
   const originalFetch = global.fetch;
+  const assign = vi.fn();
   const composerPlaceholder =
     /describe your symptom, lab result, medication question, or health concern/i;
 
   beforeEach(() => {
     replace.mockReset();
     push.mockReset();
-    signOut.mockReset();
+    assign.mockReset();
+    Object.defineProperty(window, "location", {
+      configurable: true,
+      value: {
+        assign,
+      },
+    });
     global.fetch = vi.fn(async (input, init?: RequestInit) => {
       const url = typeof input === "string" ? input : input.toString();
 
@@ -687,7 +689,7 @@ describe("chat shell", () => {
     );
     fireEvent.click(screen.getByRole("menuitem", { name: /logout/i }));
 
-    expect(signOut).toHaveBeenCalledWith({ callbackUrl: "/sign-in" });
+    expect(assign).toHaveBeenCalledWith("/api/logout");
   });
 
   it("deletes all conversations from the settings menu", async () => {

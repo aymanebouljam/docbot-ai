@@ -3,19 +3,18 @@ import userEvent from "@testing-library/user-event";
 
 import { RegisterForm } from "@/features/auth/components/register-form";
 
-const { signIn } = vi.hoisted(() => ({
-  signIn: vi.fn(),
-}));
-
-vi.mock("next-auth/react", () => ({
-  signIn,
-}));
-
 describe("register form", () => {
   const originalFetch = global.fetch;
+  const assign = vi.fn();
 
   beforeEach(() => {
-    signIn.mockReset();
+    assign.mockReset();
+    Object.defineProperty(window, "location", {
+      configurable: true,
+      value: {
+        assign,
+      },
+    });
   });
 
   afterAll(() => {
@@ -46,6 +45,25 @@ describe("register form", () => {
         /password must be at least 8 characters long/i
       )
     );
-    expect(signIn).not.toHaveBeenCalled();
+    expect(assign).not.toHaveBeenCalled();
+  });
+
+  it("redirects to sign in after account creation", async () => {
+    global.fetch = vi.fn(async () => new Response(null, { status: 201 }));
+
+    const user = userEvent.setup();
+
+    render(<RegisterForm />);
+
+    await user.type(screen.getByLabelText(/full name/i), "Aymane");
+    await user.type(screen.getByLabelText(/^email$/i), "aymane@example.com");
+    await user.type(screen.getByLabelText(/^password$/i), "longpassword");
+    await user.click(screen.getByRole("button", { name: /continue/i }));
+
+    await waitFor(() =>
+      expect(assign).toHaveBeenCalledWith(
+        "/sign-in?registered=1&email=aymane%40example.com"
+      )
+    );
   });
 });

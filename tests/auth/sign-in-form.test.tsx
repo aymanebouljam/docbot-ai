@@ -1,69 +1,54 @@
-import { render, screen, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { render, screen } from "@testing-library/react";
 
 import { SignInForm } from "@/features/auth/components/sign-in-form";
 
-const { push, signIn } = vi.hoisted(() => ({
-  push: vi.fn(),
-  signIn: vi.fn(),
-}));
-
-vi.mock("next/navigation", () => ({
-  useRouter: () => ({
-    push,
-  }),
-}));
-
-vi.mock("next-auth/react", () => ({
-  signIn,
-}));
-
 describe("sign-in form", () => {
-  beforeEach(() => {
-    push.mockReset();
-    signIn.mockReset();
-  });
-
-  it("shows an inline error when credentials are invalid", async () => {
-    signIn.mockResolvedValue({
-      error: "CredentialsSignin",
-      ok: false,
-      status: 401,
-      url: null,
-    });
-
-    const user = userEvent.setup();
-
-    render(<SignInForm callbackUrl="/" />);
-
-    await user.type(screen.getByLabelText(/email/i), "user@example.com");
-    await user.type(screen.getByLabelText(/password/i), "wrongpass");
-    await user.click(screen.getByRole("button", { name: /log in/i }));
-
-    await waitFor(() =>
-      expect(screen.getByRole("alert")).toHaveTextContent(
-        /email or password is incorrect/i
-      )
+  it("shows an inline error from the provided props", async () => {
+    render(
+      <SignInForm
+        callbackUrl="/"
+        initialErrorMessage="The email or password is incorrect."
+      />
     );
-    expect(push).not.toHaveBeenCalled();
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      /email or password is incorrect/i
+    );
   });
 
-  it("redirects after a successful login", async () => {
-    signIn.mockResolvedValue({
-      error: undefined,
-      ok: true,
-      status: 200,
-      url: "/",
-    });
+  it("renders a native login form with the callback field", async () => {
+    render(<SignInForm callbackUrl="/profile" />);
 
-    const user = userEvent.setup();
+    const submitButton = await screen.findByRole("button", { name: /log in/i });
+    expect(submitButton).toBeEnabled();
 
-    render(<SignInForm callbackUrl="/" />);
+    const callbackInput = document.querySelector(
+      'input[name="callbackUrl"]'
+    ) as HTMLInputElement | null;
+    const emailInput = document.querySelector(
+      'input[name="email"]'
+    ) as HTMLInputElement | null;
+    const nativeForm = callbackInput?.form;
 
-    await user.type(screen.getByLabelText(/email/i), "user@example.com");
-    await user.type(screen.getByLabelText(/password/i), "correctpass");
-    await user.click(screen.getByRole("button", { name: /log in/i }));
+    expect(nativeForm?.getAttribute("action")).toBe("/api/login");
+    expect(nativeForm?.getAttribute("method")).toBe("POST");
+    expect(callbackInput?.value).toBe("/profile");
+    expect(emailInput).toBeInTheDocument();
+    expect(nativeForm).toBeTruthy();
+  });
 
-    await waitFor(() => expect(push).toHaveBeenCalledWith("/"));
+  it("shows the registration success message when redirected from sign-up", async () => {
+    render(
+      <SignInForm
+        callbackUrl="/"
+        registered
+        initialEmail="user@example.com"
+      />
+    );
+
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      /your account is ready\. log in to continue\./i
+    );
+    expect(screen.getByDisplayValue("user@example.com")).toBeInTheDocument();
   });
 });
