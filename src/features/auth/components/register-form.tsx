@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { FormEvent, useState } from "react";
-import { signIn } from "next-auth/react";
 
 export function RegisterForm() {
   const [name, setName] = useState("");
@@ -40,12 +39,12 @@ export function RegisterForm() {
       return;
     }
 
-    await signIn("credentials", {
+    const nextParams = new URLSearchParams({
+      registered: "1",
       email,
-      password,
-      callbackUrl: "/",
-      redirect: true,
     });
+
+    window.location.assign(`/sign-in?${nextParams.toString()}`);
   }
 
   return (

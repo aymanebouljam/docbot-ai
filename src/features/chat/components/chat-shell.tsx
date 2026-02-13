@@ -19,7 +19,6 @@ import {
   Stethoscope,
   Trash2,
 } from "lucide-react";
-import { signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
 import { SUGGESTED_MEDICAL_PROMPTS } from "@/features/chat/constants";
@@ -905,7 +904,9 @@ export function ChatShell({
                       type="button"
                       className="flex w-full items-center justify-between rounded-[1rem] px-3 py-3 text-left text-sm text-error transition hover:bg-error/10"
                       role="menuitem"
-                      onClick={() => void signOut({ callbackUrl: "/sign-in" })}
+                      onClick={() => {
+                        window.location.assign("/api/logout");
+                      }}
                     >
                       <span>Logout</span>
                       <span className="text-xs text-base-content/45">Now</span>

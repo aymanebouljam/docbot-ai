@@ -1,44 +1,22 @@
-"use client";
-
 import Link from "next/link";
-import { FormEvent, useState } from "react";
-import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
 
 type SignInFormProps = {
   callbackUrl: string;
+  initialEmail?: string;
+  initialErrorMessage?: string | null;
+  registered?: boolean;
 };
 
-export function SignInForm({ callbackUrl }: SignInFormProps) {
-  const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setIsSubmitting(true);
-    setErrorMessage(null);
-
-    const result = await signIn("credentials", {
-      email,
-      password,
-      callbackUrl,
-      redirect: false,
-    });
-
-    if (!result || result.error) {
-      setErrorMessage("The email or password is incorrect.");
-      setIsSubmitting(false);
-      return;
-    }
-
-    router.push(result.url ?? callbackUrl);
-  }
-
+export function SignInForm({
+  callbackUrl,
+  initialEmail = "",
+  initialErrorMessage = null,
+  registered = false,
+}: SignInFormProps) {
   return (
-    <form onSubmit={handleSubmit}>
+    <form action="/api/login" method="POST">
+      <input type="hidden" name="callbackUrl" value={callbackUrl} />
+
       <div className="space-y-3">
         <div>
           <label className="sr-only" htmlFor="email">
@@ -46,11 +24,11 @@ export function SignInForm({ callbackUrl }: SignInFormProps) {
           </label>
           <input
             id="email"
+            name="email"
             type="email"
             className="w-full rounded-full border border-black/10 bg-white px-4 py-3 text-sm text-[#111827] outline-none transition placeholder:text-[#9ca3af] focus:border-[#111827]"
             placeholder="Email address"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
+            defaultValue={initialEmail}
             autoComplete="email"
             required
           />
@@ -62,29 +40,33 @@ export function SignInForm({ callbackUrl }: SignInFormProps) {
           </label>
           <input
             id="password"
+            name="password"
             type="password"
             className="w-full rounded-full border border-black/10 bg-white px-4 py-3 text-sm text-[#111827] outline-none transition placeholder:text-[#9ca3af] focus:border-[#111827]"
             placeholder="Password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
             autoComplete="current-password"
             required
           />
         </div>
       </div>
 
-      {errorMessage ? (
+      {registered && !initialErrorMessage ? (
+        <p className="mt-4 text-center text-sm text-emerald-700" role="status">
+          Your account is ready. Log in to continue.
+        </p>
+      ) : null}
+
+      {initialErrorMessage ? (
         <p className="mt-4 text-center text-sm text-[#dc2626]" role="alert">
-          {errorMessage}
+          {initialErrorMessage}
         </p>
       ) : null}
 
       <button
         type="submit"
-        className="mt-5 w-full rounded-full bg-emerald-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-[#9ca3af]"
-        disabled={isSubmitting}
+        className="mt-5 w-full rounded-full bg-emerald-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-emerald-700"
       >
-        {isSubmitting ? "Logging in..." : "Log in"}
+        Log in
       </button>
 
       <Link
