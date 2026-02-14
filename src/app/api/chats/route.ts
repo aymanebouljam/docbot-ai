@@ -3,18 +3,11 @@ import {
   deleteAllChatSessions,
   loadChatList,
 } from "@/server/chat-service";
-import {
-  createUnauthorizedResponse,
-  getAuthenticatedUser,
-} from "@/server/auth";
+import { getLocalUserProfile } from "@/server/local-user";
 import { createChatRequestSchema, parseRequestBody } from "@/server/validation";
 
 export async function POST(request: Request) {
-  const user = await getAuthenticatedUser();
-
-  if (!user) {
-    return createUnauthorizedResponse();
-  }
+  const user = await getLocalUserProfile();
 
   const body = await request.json().catch(() => ({}));
   const parsedBody = parseRequestBody(createChatRequestSchema, body);
@@ -32,23 +25,13 @@ export async function POST(request: Request) {
 }
 
 export async function GET() {
-  const user = await getAuthenticatedUser();
-
-  if (!user) {
-    return createUnauthorizedResponse();
-  }
-
+  const user = await getLocalUserProfile();
   const chats = await loadChatList(user.id);
-
   return Response.json({ chats });
 }
 
 export async function DELETE() {
-  const user = await getAuthenticatedUser();
-
-  if (!user) {
-    return createUnauthorizedResponse();
-  }
+  const user = await getLocalUserProfile();
 
   const result = await deleteAllChatSessions(user.id);
 
