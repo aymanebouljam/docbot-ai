@@ -6,20 +6,6 @@ import {
   resetDatabase,
 } from "../support/database";
 
-vi.mock("@/server/auth", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/server/auth")>();
-
-  return {
-    ...actual,
-    getAuthenticatedUser: vi.fn(async () => ({
-      id: "profile-user-id",
-      name: "Profile User",
-      email: "profile@example.com",
-      image: null,
-    })),
-  };
-});
-
 describe("profile route", () => {
   beforeEach(async () => {
     await resetDatabase();
@@ -29,9 +15,9 @@ describe("profile route", () => {
     await disconnectDatabase();
   });
 
-  it("returns the authenticated profile", async () => {
+  it("returns the local profile", async () => {
     await createTestUser({
-      id: "profile-user-id",
+      id: "local-docbot-user",
       name: "Profile User",
       email: "profile@example.com",
     });
@@ -47,8 +33,8 @@ describe("profile route", () => {
   });
 
   it("updates name, email, image, and password", async () => {
-    const { password } = await createTestUser({
-      id: "profile-user-id",
+    await createTestUser({
+      id: "local-docbot-user",
       name: "Profile User",
       email: "profile@example.com",
     });
@@ -63,7 +49,7 @@ describe("profile route", () => {
           name: "Updated User",
           email: "updated@example.com",
           image: "data:image/png;base64,abc123",
-          currentPassword: password,
+          currentPassword: "password123",
           newPassword: "newsecurepass123",
         }),
       })
@@ -71,16 +57,16 @@ describe("profile route", () => {
 
     expect(response.status).toBe(200);
 
-    const updatedUser = await getUserById("profile-user-id");
+    const updatedUser = await getUserById("local-docbot-user");
 
     expect(updatedUser?.name).toBe("Updated User");
     expect(updatedUser?.email).toBe("updated@example.com");
     expect(updatedUser?.image).toBe("data:image/png;base64,abc123");
   });
 
-  it("rejects an incorrect current password", async () => {
+  it("rejects an incomplete password update payload", async () => {
     await createTestUser({
-      id: "profile-user-id",
+      id: "local-docbot-user",
       name: "Profile User",
       email: "profile@example.com",
     });
@@ -94,7 +80,6 @@ describe("profile route", () => {
         body: JSON.stringify({
           name: "Updated User",
           email: "profile@example.com",
-          currentPassword: "wrong-password",
           newPassword: "newsecurepass123",
         }),
       })

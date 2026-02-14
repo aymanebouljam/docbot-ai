@@ -1,14 +1,8 @@
-import { redirect } from "next/navigation";
-
 import { ProfileForm } from "@/features/profile/components/profile-form";
-import { getAuthenticatedUser } from "@/server/auth";
+import { getLocalUserProfile } from "@/server/local-user";
 
 export default async function ProfilePage() {
-  const user = await getAuthenticatedUser();
-
-  if (!user) {
-    redirect("/sign-in");
-  }
+  const user = await getLocalUserProfile();
 
   return (
     <ProfileForm
