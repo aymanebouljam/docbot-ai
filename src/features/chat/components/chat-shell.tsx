@@ -871,7 +871,7 @@ export function ChatShell({
 
                 {isProfileMenuOpen ? (
                   <div
-                    className={`absolute bottom-[calc(100%+0.75rem)] rounded-[1.5rem] border border-base-200 bg-base-100 p-2 shadow-2xl ${
+                    className={`absolute bottom-[calc(100%+0.75rem)] rounded-[1.5rem] border border-slate-300/70 bg-white/65 p-2 shadow-[0_28px_80px_rgba(15,23,42,0.18)] backdrop-blur-2xl supports-[backdrop-filter]:bg-white/55 ${
                       isSidebarCollapsed ? "left-0 w-52" : "left-0 right-0"
                     }`}
                     role="menu"
@@ -905,7 +905,8 @@ export function ChatShell({
                       className="flex w-full items-center justify-between rounded-[1rem] px-3 py-3 text-left text-sm text-error transition hover:bg-error/10"
                       role="menuitem"
                       onClick={() => {
-                        window.location.assign("/api/logout");
+                        setIsProfileMenuOpen(false);
+                        router.push("/sign-in");
                       }}
                     >
                       <span>Logout</span>
