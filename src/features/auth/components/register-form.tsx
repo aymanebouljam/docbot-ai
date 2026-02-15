@@ -2,49 +2,23 @@
 
 import Link from "next/link";
 import { FormEvent, useState } from "react";
+import { useRouter } from "next/navigation";
 
 export function RegisterForm() {
+  const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setIsSubmitting(true);
-    setErrorMessage(null);
-
-    const response = await fetch("/api/register", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        name,
-        email,
-        password,
-      }),
-    });
-
-    if (!response.ok) {
-      const payload = (await response.json().catch(() => null)) as {
-        error?: string;
-      } | null;
-
-      setErrorMessage(
-        payload?.error ?? "Unable to create your account right now."
-      );
-      setIsSubmitting(false);
-      return;
-    }
 
     const nextParams = new URLSearchParams({
       registered: "1",
       email,
     });
 
-    window.location.assign(`/sign-in?${nextParams.toString()}`);
+    router.push(`/sign-in?${nextParams.toString()}`);
   }
 
   return (
@@ -99,18 +73,11 @@ export function RegisterForm() {
         </div>
       </div>
 
-      {errorMessage ? (
-        <p className="mt-4 text-center text-sm text-[#dc2626]" role="alert">
-          {errorMessage}
-        </p>
-      ) : null}
-
       <button
         type="submit"
         className="mt-5 w-full rounded-full bg-emerald-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-[#9ca3af]"
-        disabled={isSubmitting}
       >
-        {isSubmitting ? "Creating account..." : "Continue"}
+        Continue
       </button>
 
       <Link

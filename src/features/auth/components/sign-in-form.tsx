@@ -1,4 +1,8 @@
+"use client";
+
+import { FormEvent } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 type SignInFormProps = {
   callbackUrl: string;
@@ -13,10 +17,15 @@ export function SignInForm({
   initialErrorMessage = null,
   registered = false,
 }: SignInFormProps) {
-  return (
-    <form action="/api/login" method="POST">
-      <input type="hidden" name="callbackUrl" value={callbackUrl} />
+  const router = useRouter();
 
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    router.push(callbackUrl);
+  }
+
+  return (
+    <form onSubmit={handleSubmit}>
       <div className="space-y-3">
         <div>
           <label className="sr-only" htmlFor="email">
@@ -52,7 +61,7 @@ export function SignInForm({
 
       {registered && !initialErrorMessage ? (
         <p className="mt-4 text-center text-sm text-emerald-700" role="status">
-          Your account is ready. Log in to continue.
+          You&apos;re all set. Continue to DocBot.
         </p>
       ) : null}
 
@@ -77,7 +86,7 @@ export function SignInForm({
       </Link>
 
       <p className="mt-5 text-center text-xs leading-5 text-[#6b7280]">
-        Use the account you created to access your private medical workspace.
+        Continue to your medical workspace.
       </p>
     </form>
   );
