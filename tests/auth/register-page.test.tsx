@@ -2,8 +2,10 @@ import { render, screen } from "@testing-library/react";
 
 import RegisterPage from "@/app/register/page";
 
-vi.mock("@/server/auth", () => ({
-  getServerAuthSession: vi.fn(async () => null),
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    push: vi.fn(),
+  }),
 }));
 
 describe("register page", () => {

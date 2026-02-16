@@ -2,8 +2,8 @@ import { render, screen } from "@testing-library/react";
 
 import ProfilePage from "@/app/profile/page";
 
-vi.mock("@/server/auth", () => ({
-  getAuthenticatedUser: vi.fn(async () => ({
+vi.mock("@/server/local-user", () => ({
+  getLocalUserProfile: vi.fn(async () => ({
     id: "profile-user-id",
     name: "Profile User",
     email: "profile@example.com",
