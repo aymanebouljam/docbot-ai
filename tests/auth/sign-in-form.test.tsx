@@ -1,8 +1,20 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 
 import { SignInForm } from "@/features/auth/components/sign-in-form";
 
+const push = vi.fn();
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    push,
+  }),
+}));
+
 describe("sign-in form", () => {
+  beforeEach(() => {
+    push.mockReset();
+  });
+
   it("shows an inline error from the provided props", async () => {
     render(
       <SignInForm
@@ -16,25 +28,15 @@ describe("sign-in form", () => {
     );
   });
 
-  it("renders a native login form with the callback field", async () => {
+  it("routes to the callback destination on submit", async () => {
     render(<SignInForm callbackUrl="/profile" />);
 
     const submitButton = await screen.findByRole("button", { name: /log in/i });
     expect(submitButton).toBeEnabled();
 
-    const callbackInput = document.querySelector(
-      'input[name="callbackUrl"]'
-    ) as HTMLInputElement | null;
-    const emailInput = document.querySelector(
-      'input[name="email"]'
-    ) as HTMLInputElement | null;
-    const nativeForm = callbackInput?.form;
+    fireEvent.submit(submitButton.closest("form") as HTMLFormElement);
 
-    expect(nativeForm?.getAttribute("action")).toBe("/api/login");
-    expect(nativeForm?.getAttribute("method")).toBe("POST");
-    expect(callbackInput?.value).toBe("/profile");
-    expect(emailInput).toBeInTheDocument();
-    expect(nativeForm).toBeTruthy();
+    expect(push).toHaveBeenCalledWith("/profile");
   });
 
   it("shows the registration success message when redirected from sign-up", async () => {
@@ -47,7 +49,7 @@ describe("sign-in form", () => {
     );
 
     expect(await screen.findByRole("status")).toHaveTextContent(
-      /your account is ready\. log in to continue\./i
+      /you're all set\. continue to docbot\./i
     );
     expect(screen.getByDisplayValue("user@example.com")).toBeInTheDocument();
   });

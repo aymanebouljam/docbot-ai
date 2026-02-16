@@ -2,8 +2,10 @@ import { render, screen } from "@testing-library/react";
 
 import SignInPage from "@/app/sign-in/page";
 
-vi.mock("@/server/auth", () => ({
-  getServerAuthSession: vi.fn(async () => null),
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    push: vi.fn(),
+  }),
 }));
 
 describe("sign-in page", () => {
