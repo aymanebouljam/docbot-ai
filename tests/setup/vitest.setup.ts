@@ -14,7 +14,6 @@ const globalForTests = globalThis as typeof globalThis & {
 };
 
 process.env.DATABASE_URL = TEST_DATABASE_URL;
-process.env.NEXTAUTH_SECRET = "test-nextauth-secret";
 
 if (!globalForTests.databasePrepared) {
   fs.rmSync(TEST_DATABASE_PATH, { force: true });

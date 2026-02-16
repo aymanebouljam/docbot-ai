@@ -2,8 +2,8 @@ import {
   createMessageRequestSchema,
   MIN_PASSWORD_LENGTH,
   MAX_MESSAGE_LENGTH,
+  MAX_USER_NAME_LENGTH,
   normalizeStoredContent,
-  registerUserRequestSchema,
   updateProfileRequestSchema,
 } from "@/server/validation";
 
@@ -30,21 +30,22 @@ describe("request validation", () => {
     );
   });
 
-  it("validates registration payloads", () => {
-    const result = registerUserRequestSchema.safeParse({
+  it("requires the current password when setting a new password", () => {
+    const result = updateProfileRequestSchema.safeParse({
       name: "Dr Test",
       email: "doctor@example.com",
-      password: "securepass123",
+      newPassword: "securepass123",
     });
 
-    expect(result.success).toBe(true);
+    expect(result.success).toBe(false);
   });
 
-  it("enforces the minimum registration password length", () => {
-    const result = registerUserRequestSchema.safeParse({
-      name: "Dr Test",
+  it("enforces the maximum profile name length", () => {
+    const result = updateProfileRequestSchema.safeParse({
+      name: "a".repeat(MAX_USER_NAME_LENGTH + 1),
       email: "doctor@example.com",
-      password: "a".repeat(MIN_PASSWORD_LENGTH - 1),
+      currentPassword: "a".repeat(MIN_PASSWORD_LENGTH),
+      newPassword: "a".repeat(MIN_PASSWORD_LENGTH),
     });
 
     expect(result.success).toBe(false);
