@@ -17,20 +17,12 @@ vi.mock("next/navigation", () => ({
 
 describe("chat shell", () => {
   const originalFetch = global.fetch;
-  const assign = vi.fn();
   const composerPlaceholder =
     /describe your symptom, lab result, medication question, or health concern/i;
 
   beforeEach(() => {
     replace.mockReset();
     push.mockReset();
-    assign.mockReset();
-    Object.defineProperty(window, "location", {
-      configurable: true,
-      value: {
-        assign,
-      },
-    });
     global.fetch = vi.fn(async (input, init?: RequestInit) => {
       const url = typeof input === "string" ? input : input.toString();
 
@@ -681,7 +673,7 @@ describe("chat shell", () => {
     expect(push).toHaveBeenCalledWith("/profile");
   });
 
-  it("signs out from the profile menu", async () => {
+  it("routes to sign in from the profile menu logout action", async () => {
     render(<ChatShell />);
 
     fireEvent.click(
@@ -689,7 +681,7 @@ describe("chat shell", () => {
     );
     fireEvent.click(screen.getByRole("menuitem", { name: /logout/i }));
 
-    expect(assign).toHaveBeenCalledWith("/api/logout");
+    expect(push).toHaveBeenCalledWith("/sign-in");
   });
 
   it("deletes all conversations from the settings menu", async () => {

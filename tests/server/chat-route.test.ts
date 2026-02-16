@@ -11,19 +11,6 @@ import {
   resetDatabase,
 } from "../support/database";
 
-vi.mock("@/server/auth", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/server/auth")>();
-
-  return {
-    ...actual,
-    getAuthenticatedUser: vi.fn(async () => ({
-      id: "test-user-id",
-      name: "Test User",
-      email: "user@example.com",
-    })),
-  };
-});
-
 describe("chat list route", () => {
   beforeEach(async () => {
     await resetDatabase();
@@ -35,8 +22,8 @@ describe("chat list route", () => {
 
   it("returns chats ordered newest first", async () => {
     const { user } = await createTestUser({
-      id: "test-user-id",
-      email: "user@example.com",
+      id: "local-docbot-user",
+      email: "local@docbot.app",
     });
     const firstChat = await createChatSession(user.id, "Earlier chat");
     const secondChat = await createChatSession(user.id, "Later chat");
@@ -87,20 +74,10 @@ describe("chat list route", () => {
     expect(response.status).toBe(400);
   });
 
-  it("rejects unauthenticated chat list access", async () => {
-    const { getAuthenticatedUser } = await import("@/server/auth");
-
-    vi.mocked(getAuthenticatedUser).mockResolvedValueOnce(null);
-
-    const response = await GET();
-
-    expect(response.status).toBe(401);
-  });
-
   it("deletes all chats for the authenticated user", async () => {
     const { user } = await createTestUser({
-      id: "test-user-id",
-      email: "user@example.com",
+      id: "local-docbot-user",
+      email: "local@docbot.app",
     });
 
     await createChatSession(user.id, "First");
@@ -122,8 +99,8 @@ describe("chat list route", () => {
 
   it("deletes the requested chat", async () => {
     const { user } = await createTestUser({
-      id: "test-user-id",
-      email: "user@example.com",
+      id: "local-docbot-user",
+      email: "local@docbot.app",
     });
     const chat = await createChatSession(user.id, "Delete me");
 

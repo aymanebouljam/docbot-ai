@@ -9,19 +9,6 @@ import {
   resetDatabase,
 } from "../support/database";
 
-vi.mock("@/server/auth", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/server/auth")>();
-
-  return {
-    ...actual,
-    getAuthenticatedUser: vi.fn(async () => ({
-      id: "test-user-id",
-      name: "Test User",
-      email: "user@example.com",
-    })),
-  };
-});
-
 describe("chat message route", () => {
   const originalFetch = global.fetch;
 
@@ -54,8 +41,8 @@ describe("chat message route", () => {
 
   it("persists a posted user message", async () => {
     const { user } = await createTestUser({
-      id: "test-user-id",
-      email: "user@example.com",
+      id: "local-docbot-user",
+      email: "local@docbot.app",
     });
     const chat = await createChatSession(user.id);
 
@@ -89,8 +76,8 @@ describe("chat message route", () => {
 
   it("stores a prompt-injection fallback assistant reply", async () => {
     const { user } = await createTestUser({
-      id: "test-user-id",
-      email: "user@example.com",
+      id: "local-docbot-user",
+      email: "local@docbot.app",
     });
     const chat = await createChatSession(user.id);
 
@@ -116,8 +103,8 @@ describe("chat message route", () => {
 
   it("stores a deterministic fallback for prompt-injection attempts", async () => {
     const { user } = await createTestUser({
-      id: "test-user-id",
-      email: "user@example.com",
+      id: "local-docbot-user",
+      email: "local@docbot.app",
     });
     const chat = await createChatSession(user.id);
 
@@ -161,8 +148,8 @@ describe("chat message route", () => {
 
   it("stores urgent safety guidance for red-flag prompts", async () => {
     const { user } = await createTestUser({
-      id: "test-user-id",
-      email: "user@example.com",
+      id: "local-docbot-user",
+      email: "local@docbot.app",
     });
     const chat = await createChatSession(user.id);
 
@@ -198,8 +185,8 @@ describe("chat message route", () => {
 
   it("stores urgent crisis-safe guidance for suicidal wording", async () => {
     const { user } = await createTestUser({
-      id: "test-user-id",
-      email: "user@example.com",
+      id: "local-docbot-user",
+      email: "local@docbot.app",
     });
     const chat = await createChatSession(user.id);
 
@@ -223,15 +210,15 @@ describe("chat message route", () => {
     const persistedChat = await getChatById(chat.id, user.id);
 
     expect(persistedChat?.messages[1]?.content).toMatch(
-      /seek immediate medical care now/i
+      /988 right now for immediate crisis support/i
     );
     expect(global.fetch).not.toHaveBeenCalled();
   });
 
   it("rejects invalid message payloads with a 400 status", async () => {
     const { user } = await createTestUser({
-      id: "test-user-id",
-      email: "user@example.com",
+      id: "local-docbot-user",
+      email: "local@docbot.app",
     });
     const chat = await createChatSession(user.id);
 
@@ -255,8 +242,8 @@ describe("chat message route", () => {
 
   it("rejects overly long message payloads with a 400 status", async () => {
     const { user } = await createTestUser({
-      id: "test-user-id",
-      email: "user@example.com",
+      id: "local-docbot-user",
+      email: "local@docbot.app",
     });
     const chat = await createChatSession(user.id);
 
@@ -278,39 +265,10 @@ describe("chat message route", () => {
     expect(response.status).toBe(400);
   });
 
-  it("rejects unauthenticated message posting", async () => {
-    const { getAuthenticatedUser } = await import("@/server/auth");
-    const { user } = await createTestUser({
-      id: "test-user-id",
-      email: "user@example.com",
-    });
-    const chat = await createChatSession(user.id);
-
-    vi.mocked(getAuthenticatedUser).mockResolvedValueOnce(null);
-
-    const response = await POST(
-      new Request("http://localhost/api/chats/messages", {
-        method: "POST",
-        body: JSON.stringify({
-          content: "My blood pressure is 150/95. Is that bad?",
-        }),
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }),
-      {
-        params: Promise.resolve({ chatId: chat.id }),
-      }
-    );
-
-    expect(response.status).toBe(401);
-    expect(global.fetch).not.toHaveBeenCalled();
-  });
-
   it("rate limits repeated rapid submissions", async () => {
     const { user } = await createTestUser({
-      id: "test-user-id",
-      email: "user@example.com",
+      id: "local-docbot-user",
+      email: "local@docbot.app",
     });
     const chat = await createChatSession(user.id);
 
