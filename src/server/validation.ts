@@ -41,6 +41,41 @@ export const createMessageRequestSchema = z.object({
     ),
 });
 
+export const registerRequestSchema = z.object({
+  name: z
+    .string()
+    .transform(normalizeInputText)
+    .pipe(z.string().min(1, "Name is required."))
+    .pipe(
+      z
+        .string()
+        .max(
+          MAX_USER_NAME_LENGTH,
+          `Name must be ${MAX_USER_NAME_LENGTH} characters or fewer.`
+        )
+    ),
+  email: z
+    .string()
+    .trim()
+    .email("Enter a valid email address.")
+    .transform((value) => value.toLowerCase()),
+  password: z
+    .string()
+    .min(
+      MIN_PASSWORD_LENGTH,
+      `Password must be at least ${MIN_PASSWORD_LENGTH} characters long.`
+    ),
+});
+
+export const signInRequestSchema = z.object({
+  email: z
+    .string()
+    .trim()
+    .email("Enter a valid email address.")
+    .transform((value) => value.toLowerCase()),
+  password: z.string().min(1, "Password is required."),
+});
+
 const optionalProfileImageSchema = z
   .union([
     z.null(),
