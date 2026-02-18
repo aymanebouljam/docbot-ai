@@ -3,11 +3,15 @@ import {
   deleteAllChatSessions,
   loadChatList,
 } from "@/server/chat-service";
-import { getLocalUserProfile } from "@/server/local-user";
+import { getAuthenticatedUserFromRequest } from "@/server/auth-user";
 import { createChatRequestSchema, parseRequestBody } from "@/server/validation";
 
 export async function POST(request: Request) {
-  const user = await getLocalUserProfile();
+  const user = await getAuthenticatedUserFromRequest(request);
+
+  if (!user) {
+    return Response.json({ error: "Unauthorized." }, { status: 401 });
+  }
 
   const body = await request.json().catch(() => ({}));
   const parsedBody = parseRequestBody(createChatRequestSchema, body);
@@ -24,14 +28,23 @@ export async function POST(request: Request) {
   return Response.json({ chat }, { status: 201 });
 }
 
-export async function GET() {
-  const user = await getLocalUserProfile();
+export async function GET(request: Request) {
+  const user = await getAuthenticatedUserFromRequest(request);
+
+  if (!user) {
+    return Response.json({ error: "Unauthorized." }, { status: 401 });
+  }
+
   const chats = await loadChatList(user.id);
   return Response.json({ chats });
 }
 
-export async function DELETE() {
-  const user = await getLocalUserProfile();
+export async function DELETE(request: Request) {
+  const user = await getAuthenticatedUserFromRequest(request);
+
+  if (!user) {
+    return Response.json({ error: "Unauthorized." }, { status: 401 });
+  }
 
   const result = await deleteAllChatSessions(user.id);
 

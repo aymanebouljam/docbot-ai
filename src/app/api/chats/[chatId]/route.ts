@@ -1,12 +1,16 @@
 import { deleteChatSession, loadChat } from "@/server/chat-service";
-import { getLocalUserProfile } from "@/server/local-user";
+import { getAuthenticatedUserFromRequest } from "@/server/auth-user";
 
 type ChatRouteContext = {
   params: Promise<{ chatId: string }>;
 };
 
-export async function GET(_request: Request, context: ChatRouteContext) {
-  const user = await getLocalUserProfile();
+export async function GET(request: Request, context: ChatRouteContext) {
+  const user = await getAuthenticatedUserFromRequest(request);
+
+  if (!user) {
+    return Response.json({ error: "Unauthorized." }, { status: 401 });
+  }
 
   const { chatId } = await context.params;
   const chat = await loadChat(user.id, chatId);
@@ -18,8 +22,12 @@ export async function GET(_request: Request, context: ChatRouteContext) {
   return Response.json({ chat });
 }
 
-export async function DELETE(_request: Request, context: ChatRouteContext) {
-  const user = await getLocalUserProfile();
+export async function DELETE(request: Request, context: ChatRouteContext) {
+  const user = await getAuthenticatedUserFromRequest(request);
+
+  if (!user) {
+    return Response.json({ error: "Unauthorized." }, { status: 401 });
+  }
 
   const { chatId } = await context.params;
   const deletedChat = await deleteChatSession(user.id, chatId);

@@ -1,5 +1,6 @@
 import { ChatShell } from "@/features/chat/components/chat-shell";
-import { getLocalUserProfile } from "@/server/local-user";
+import { getAuthenticatedUser } from "@/server/auth-user";
+import { redirect } from "next/navigation";
 
 type HomePageProps = {
   searchParams: Promise<{ chatId?: string | string[] | undefined }>;
@@ -10,7 +11,11 @@ export default async function Home({ searchParams }: HomePageProps) {
   const initialChatId = Array.isArray(resolvedSearchParams.chatId)
     ? resolvedSearchParams.chatId[0]
     : resolvedSearchParams.chatId;
-  const user = await getLocalUserProfile();
+  const user = await getAuthenticatedUser();
+
+  if (!user) {
+    redirect("/sign-in?callbackUrl=/");
+  }
 
   return (
     <ChatShell
