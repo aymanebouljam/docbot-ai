@@ -1,14 +1,25 @@
+import { getAuthenticatedUserFromRequest } from "@/server/auth-user";
 import {
-  getLocalUserProfile,
-  updateLocalUserProfile,
-} from "@/server/local-user";
+  getProfileByUserId,
+  updateProfileByUserId,
+} from "@/server/user-profile";
 import {
   parseRequestBody,
   updateProfileRequestSchema,
 } from "@/server/validation";
 
-export async function GET() {
-  const user = await getLocalUserProfile();
+export async function GET(request: Request) {
+  const authenticatedUser = await getAuthenticatedUserFromRequest(request);
+
+  if (!authenticatedUser) {
+    return Response.json({ error: "Unauthorized." }, { status: 401 });
+  }
+
+  const user = await getProfileByUserId(authenticatedUser.id);
+
+  if (!user) {
+    return Response.json({ error: "User not found." }, { status: 404 });
+  }
 
   return Response.json({
     user: {
@@ -21,6 +32,12 @@ export async function GET() {
 }
 
 export async function PATCH(request: Request) {
+  const authenticatedUser = await getAuthenticatedUserFromRequest(request);
+
+  if (!authenticatedUser) {
+    return Response.json({ error: "Unauthorized." }, { status: 401 });
+  }
+
   const body = await request.json().catch(() => ({}));
   const parsedBody = parseRequestBody(updateProfileRequestSchema, body);
 
@@ -34,14 +51,21 @@ export async function PATCH(request: Request) {
     );
   }
 
-  const user = await updateLocalUserProfile(parsedBody.data);
+  const updateResult = await updateProfileByUserId(
+    authenticatedUser.id,
+    parsedBody.data
+  );
+
+  if (!updateResult.user) {
+    return Response.json({ error: updateResult.error }, { status: 400 });
+  }
 
   return Response.json({
     user: {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      image: user.image ?? null,
+      id: updateResult.user.id,
+      name: updateResult.user.name,
+      email: updateResult.user.email,
+      image: updateResult.user.image ?? null,
     },
   });
 }
