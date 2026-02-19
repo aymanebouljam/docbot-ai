@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -18,9 +19,35 @@ export function SignInForm({
   registered = false,
 }: SignInFormProps) {
   const router = useRouter();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState(initialErrorMessage);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setIsSubmitting(true);
+    setErrorMessage(null);
+
+    const formData = new FormData(event.currentTarget);
+    const email = String(formData.get("email") ?? "").trim();
+    const password = String(formData.get("password") ?? "");
+
+    const response = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email,
+        password,
+      }),
+    });
+
+    if (!response.ok) {
+      setErrorMessage("The email or password is incorrect.");
+      setIsSubmitting(false);
+      return;
+    }
+
     router.push(callbackUrl);
   }
 
@@ -59,23 +86,24 @@ export function SignInForm({
         </div>
       </div>
 
-      {registered && !initialErrorMessage ? (
+      {registered && !errorMessage ? (
         <p className="mt-4 text-center text-sm text-emerald-700" role="status">
           You&apos;re all set. Continue to DocBot.
         </p>
       ) : null}
 
-      {initialErrorMessage ? (
+      {errorMessage ? (
         <p className="mt-4 text-center text-sm text-[#dc2626]" role="alert">
-          {initialErrorMessage}
+          {errorMessage}
         </p>
       ) : null}
 
       <button
         type="submit"
+        disabled={isSubmitting}
         className="mt-5 w-full rounded-full bg-emerald-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-emerald-700"
       >
-        Log in
+        {isSubmitting ? "Signing in..." : "Log in"}
       </button>
 
       <Link

@@ -9,9 +9,35 @@ export function RegisterForm() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setIsSubmitting(true);
+    setErrorMessage(null);
+
+    const response = await fetch("/api/auth/register", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name,
+        email,
+        password,
+      }),
+    });
+
+    if (!response.ok) {
+      if (response.status === 409) {
+        setErrorMessage("An account with this email already exists.");
+      } else {
+        setErrorMessage("Unable to create your account right now.");
+      }
+      setIsSubmitting(false);
+      return;
+    }
 
     const nextParams = new URLSearchParams({
       registered: "1",
@@ -73,11 +99,18 @@ export function RegisterForm() {
         </div>
       </div>
 
+      {errorMessage ? (
+        <p className="mt-4 text-center text-sm text-[#dc2626]" role="alert">
+          {errorMessage}
+        </p>
+      ) : null}
+
       <button
         type="submit"
+        disabled={isSubmitting}
         className="mt-5 w-full rounded-full bg-emerald-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-[#9ca3af]"
       >
-        Continue
+        {isSubmitting ? "Creating account..." : "Continue"}
       </button>
 
       <Link
