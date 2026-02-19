@@ -1,5 +1,7 @@
 import { AuthShell } from "@/features/auth/components/auth-shell";
 import { SignInForm } from "@/features/auth/components/sign-in-form";
+import { getAuthenticatedUser } from "@/server/auth-user";
+import { redirect } from "next/navigation";
 
 type SignInPageProps = {
   searchParams: Promise<{
@@ -11,6 +13,12 @@ type SignInPageProps = {
 };
 
 export default async function SignInPage({ searchParams }: SignInPageProps) {
+  const user = await getAuthenticatedUser();
+
+  if (user) {
+    redirect("/");
+  }
+
   const resolvedSearchParams = await searchParams;
   const callbackUrl = Array.isArray(resolvedSearchParams.callbackUrl)
     ? resolvedSearchParams.callbackUrl[0]

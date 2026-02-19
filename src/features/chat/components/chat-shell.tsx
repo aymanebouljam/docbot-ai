@@ -904,7 +904,10 @@ export function ChatShell({
                       type="button"
                       className="flex w-full items-center justify-between rounded-[1rem] px-3 py-3 text-left text-sm text-error transition hover:bg-error/10"
                       role="menuitem"
-                      onClick={() => {
+                      onClick={async () => {
+                        await fetch("/api/auth/logout", {
+                          method: "POST",
+                        });
                         setIsProfileMenuOpen(false);
                         router.push("/sign-in");
                       }}
