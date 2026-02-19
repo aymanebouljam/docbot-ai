@@ -1,4 +1,5 @@
 import { getPrismaClient } from "@/lib/prisma";
+import { createSessionCookieHeader } from "@/server/auth-session";
 import { hashPassword } from "@/server/password";
 
 export async function resetDatabase() {
@@ -40,4 +41,8 @@ export async function createTestUser(overrides?: {
     user,
     password,
   };
+}
+
+export function createAuthCookieForUser(userId: string) {
+  return createSessionCookieHeader(userId);
 }
