@@ -681,6 +681,11 @@ describe("chat shell", () => {
     );
     fireEvent.click(screen.getByRole("menuitem", { name: /logout/i }));
 
+    await waitFor(() =>
+      expect(global.fetch).toHaveBeenCalledWith("/api/auth/logout", {
+        method: "POST",
+      })
+    );
     expect(push).toHaveBeenCalledWith("/sign-in");
   });
 
