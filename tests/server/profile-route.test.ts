@@ -1,6 +1,7 @@
 import { GET, PATCH } from "@/app/api/profile/route";
 import { getUserById } from "@/server/user-repository";
 import {
+  createAuthCookieForUser,
   createTestUser,
   disconnectDatabase,
   resetDatabase,
@@ -16,13 +17,19 @@ describe("profile route", () => {
   });
 
   it("returns the local profile", async () => {
-    await createTestUser({
-      id: "local-docbot-user",
+    const { user } = await createTestUser({
       name: "Profile User",
       email: "profile@example.com",
     });
+    const cookie = createAuthCookieForUser(user.id);
 
-    const response = await GET();
+    const response = await GET(
+      new Request("http://localhost/api/profile", {
+        headers: {
+          Cookie: cookie,
+        },
+      })
+    );
     const body = (await response.json()) as {
       user: { name: string; email: string; image: string | null };
     };
@@ -33,17 +40,18 @@ describe("profile route", () => {
   });
 
   it("updates name, email, image, and password", async () => {
-    await createTestUser({
-      id: "local-docbot-user",
+    const { user } = await createTestUser({
       name: "Profile User",
       email: "profile@example.com",
     });
+    const cookie = createAuthCookieForUser(user.id);
 
     const response = await PATCH(
       new Request("http://localhost/api/profile", {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
+          Cookie: cookie,
         },
         body: JSON.stringify({
           name: "Updated User",
@@ -57,7 +65,7 @@ describe("profile route", () => {
 
     expect(response.status).toBe(200);
 
-    const updatedUser = await getUserById("local-docbot-user");
+    const updatedUser = await getUserById(user.id);
 
     expect(updatedUser?.name).toBe("Updated User");
     expect(updatedUser?.email).toBe("updated@example.com");
@@ -65,21 +73,49 @@ describe("profile route", () => {
   });
 
   it("rejects an incomplete password update payload", async () => {
-    await createTestUser({
-      id: "local-docbot-user",
+    const { user } = await createTestUser({
       name: "Profile User",
       email: "profile@example.com",
     });
+    const cookie = createAuthCookieForUser(user.id);
 
     const response = await PATCH(
       new Request("http://localhost/api/profile", {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
+          Cookie: cookie,
         },
         body: JSON.stringify({
           name: "Updated User",
           email: "profile@example.com",
+          newPassword: "newsecurepass123",
+        }),
+      })
+    );
+
+    expect(response.status).toBe(400);
+  });
+
+  it("rejects incorrect current password", async () => {
+    const { user } = await createTestUser({
+      name: "Profile User",
+      email: "profile@example.com",
+      password: "password123",
+    });
+    const cookie = createAuthCookieForUser(user.id);
+
+    const response = await PATCH(
+      new Request("http://localhost/api/profile", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Cookie: cookie,
+        },
+        body: JSON.stringify({
+          name: "Updated User",
+          email: "profile@example.com",
+          currentPassword: "wrong-password",
           newPassword: "newsecurepass123",
         }),
       })
