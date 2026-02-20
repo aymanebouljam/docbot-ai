@@ -6,6 +6,11 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({
     push: vi.fn(),
   }),
+  redirect: vi.fn(),
+}));
+
+vi.mock("@/server/auth-user", () => ({
+  getAuthenticatedUser: vi.fn(async () => null),
 }));
 
 describe("register page", () => {

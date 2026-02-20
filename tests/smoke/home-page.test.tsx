@@ -2,8 +2,8 @@ import { render, screen, waitFor } from "@testing-library/react";
 
 import Home from "@/app/page";
 
-vi.mock("@/server/local-user", () => ({
-  getLocalUserProfile: vi.fn(async () => ({
+vi.mock("@/server/auth-user", () => ({
+  getAuthenticatedUser: vi.fn(async () => ({
     id: "test-user-id",
     name: "Test User",
     email: "user@example.com",
