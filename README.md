@@ -10,6 +10,7 @@ DocBot AI is a medical-only chatbot built with Next.js, TypeScript, Tailwind CSS
 - Groq-powered medical educational answers with server-side API boundaries.
 - Chat sidebar with search, saved conversations, and auto-generated titles.
 - Input validation, normalization, and basic rate limiting.
+- First-party email/password registration and login with signed HTTP-only session cookies.
 
 ## Getting Started
 
