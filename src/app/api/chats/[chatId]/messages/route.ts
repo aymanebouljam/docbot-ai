@@ -1,6 +1,6 @@
 import { processUserMessage } from "@/server/chat-service";
 import { generateMedicalAnswer } from "@/server/groq";
-import { getLocalUserProfile } from "@/server/local-user";
+import { getAuthenticatedUserFromRequest } from "@/server/auth-user";
 import { checkRateLimit } from "@/server/rate-limit";
 import {
   createMessageRequestSchema,
@@ -15,7 +15,11 @@ export async function POST(
   request: Request,
   context: ChatMessagesRouteContext
 ) {
-  const user = await getLocalUserProfile();
+  const user = await getAuthenticatedUserFromRequest(request);
+
+  if (!user) {
+    return Response.json({ error: "Unauthorized." }, { status: 401 });
+  }
 
   const { chatId } = await context.params;
   const rateLimit = checkRateLimit({
