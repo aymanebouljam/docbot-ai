@@ -86,23 +86,23 @@ export function AuthShowcase() {
 
   return (
     <div
-      className={`max-w-2xl transition duration-300 ${
+      className={`w-full max-w-[42rem] transition duration-300 ${
         isVisible ? "opacity-100" : "opacity-0"
       }`}
     >
       <p className="text-sm font-medium uppercase tracking-[0.24em] text-emerald-200/80">
         Guided Medical Conversations
       </p>
-      <h2 className="mt-5 text-4xl font-semibold tracking-tight text-white sm:text-5xl">
+      <h2 className="mt-5 text-3xl font-semibold tracking-tight text-white xl:text-5xl">
         {activeConversation.title}
       </h2>
-      <div className="mt-10 flex w-full max-w-full flex-col gap-4 sm:w-[42rem]">
+      <div className="mt-10 flex w-full max-w-full flex-col gap-4">
         <div className="flex justify-end">
-          <div className="w-fit max-w-[75%] rounded-[1.7rem] rounded-br-md bg-white/12 px-5 py-4 text-sm leading-7 text-white/90 shadow-[0_20px_60px_rgba(0,0,0,0.18)] backdrop-blur">
+          <div className="w-fit max-w-[85%] break-words rounded-[1.7rem] rounded-br-md bg-white/12 px-5 py-4 text-sm leading-7 text-white/90 shadow-[0_20px_60px_rgba(0,0,0,0.18)] backdrop-blur">
             {activeConversation.prompt}
           </div>
         </div>
-        <div className="w-[85%] rounded-[1.7rem] rounded-bl-md border border-white/12 bg-white/95 px-5 py-4 text-sm leading-7 text-slate-700 shadow-[0_28px_80px_rgba(15,23,42,0.2)]">
+        <div className="w-full max-w-[90%] break-words rounded-[1.7rem] rounded-bl-md border border-white/12 bg-white/95 px-5 py-4 text-sm leading-7 text-slate-700 shadow-[0_28px_80px_rgba(15,23,42,0.2)]">
           {activeConversation.reply.slice(0, typedLength)}
           <span
             className="ml-1 inline-block h-5 w-px translate-y-1 animate-pulse bg-emerald-600"
