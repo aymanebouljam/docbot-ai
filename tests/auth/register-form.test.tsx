@@ -16,7 +16,9 @@ describe("register form", () => {
 
   beforeEach(() => {
     push.mockReset();
-    global.fetch = vi.fn(async () => new Response(JSON.stringify({}), { status: 201 }));
+    global.fetch = vi.fn(
+      async () => new Response(JSON.stringify({}), { status: 201 })
+    );
   });
 
   afterAll(() => {
@@ -52,9 +54,14 @@ describe("register form", () => {
   it("shows a useful message when the account already exists", async () => {
     global.fetch = vi.fn(
       async () =>
-        new Response(JSON.stringify({ error: "An account with this email already exists." }), {
-          status: 409,
-        })
+        new Response(
+          JSON.stringify({
+            error: "An account with this email already exists.",
+          }),
+          {
+            status: 409,
+          }
+        )
     );
     const user = userEvent.setup();
 

@@ -12,6 +12,24 @@ DocBot AI is a medical-only chatbot built with Next.js, TypeScript, Tailwind CSS
 - Input validation, normalization, and basic rate limiting.
 - First-party email/password registration and login with signed HTTP-only session cookies.
 
+## Screenshots
+
+### Authentication
+
+![DocBot Auth UI](src/assets/auth.png)
+
+### Home
+
+![DocBot Home UI](src/assets/home.png)
+
+## Tech Stack
+
+- Next.js
+- TypeScript
+- Tailwind CSS + DaisyUI
+- Prisma + SQLite
+- Groq API
+
 ## Getting Started
 
 1. Install dependencies with `pnpm install`.
@@ -43,6 +61,8 @@ DocBot AI is a medical-only chatbot built with Next.js, TypeScript, Tailwind CSS
 - `pnpm build`
 - `pnpm start`
 - `pnpm lint`
+- `pnpm typecheck`
+- `pnpm format`
 - `pnpm test`
 - `pnpm test:all`
 - `pnpm prisma:generate`

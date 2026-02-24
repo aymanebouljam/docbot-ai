@@ -15,7 +15,9 @@ describe("sign-in form", () => {
 
   beforeEach(() => {
     push.mockReset();
-    global.fetch = vi.fn(async () => new Response(JSON.stringify({}), { status: 200 }));
+    global.fetch = vi.fn(
+      async () => new Response(JSON.stringify({}), { status: 200 })
+    );
   });
 
   afterAll(() => {
@@ -58,11 +60,7 @@ describe("sign-in form", () => {
 
   it("shows the registration success message when redirected from sign-up", async () => {
     render(
-      <SignInForm
-        callbackUrl="/"
-        registered
-        initialEmail="user@example.com"
-      />
+      <SignInForm callbackUrl="/" registered initialEmail="user@example.com" />
     );
 
     expect(await screen.findByRole("status")).toHaveTextContent(
@@ -72,10 +70,16 @@ describe("sign-in form", () => {
   });
 
   it("renders a server error when login fails", async () => {
-    global.fetch = vi.fn(async () => new Response(JSON.stringify({}), { status: 401 }));
+    global.fetch = vi.fn(
+      async () => new Response(JSON.stringify({}), { status: 401 })
+    );
     render(<SignInForm callbackUrl="/profile" />);
 
-    fireEvent.submit(screen.getByRole("button", { name: /log in/i }).closest("form") as HTMLFormElement);
+    fireEvent.submit(
+      screen
+        .getByRole("button", { name: /log in/i })
+        .closest("form") as HTMLFormElement
+    );
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       /email or password is incorrect/i

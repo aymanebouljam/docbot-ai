@@ -23,7 +23,9 @@ function fromBase64Url(value: string) {
 }
 
 function sign(value: string) {
-  return createHmac("sha256", getSessionSecret()).update(value).digest("base64url");
+  return createHmac("sha256", getSessionSecret())
+    .update(value)
+    .digest("base64url");
 }
 
 function decodeSessionToken(token: string): SessionPayload | null {
@@ -46,7 +48,9 @@ function decodeSessionToken(token: string): SessionPayload | null {
   }
 
   try {
-    const parsedPayload = JSON.parse(fromBase64Url(payloadBase64)) as SessionPayload;
+    const parsedPayload = JSON.parse(
+      fromBase64Url(payloadBase64)
+    ) as SessionPayload;
 
     if (!parsedPayload.userId || typeof parsedPayload.exp !== "number") {
       return null;
