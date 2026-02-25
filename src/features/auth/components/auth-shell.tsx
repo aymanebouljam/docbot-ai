@@ -11,11 +11,11 @@ type AuthShellProps = {
 
 export function AuthShell({ title, description, children }: AuthShellProps) {
   return (
-    <main className="min-h-screen bg-[#f4f7f6] text-[#0f172a]">
-      <div className="grid min-h-screen lg:grid-cols-[minmax(0,1.1fr)_minmax(420px,0.9fr)]">
+    <main className="min-h-[100dvh] bg-[#f4f7f6] text-[#0f172a]">
+      <div className="grid min-h-[100dvh] lg:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)]">
         <section className="relative hidden overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(52,211,153,0.28),_transparent_32%),linear-gradient(160deg,_#062f2b_0%,_#0b4b43_50%,_#0f766e_100%)] lg:flex">
           <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.08)_0%,transparent_40%,rgba(255,255,255,0.05)_100%)]" />
-          <div className="relative flex min-h-screen w-full flex-col px-12 py-10 xl:px-16">
+          <div className="relative flex min-h-[100dvh] w-full flex-col px-8 py-8 xl:px-16">
             <div className="flex items-center gap-3">
               <Link
                 href="/"
@@ -31,8 +31,8 @@ export function AuthShell({ title, description, children }: AuthShellProps) {
           </div>
         </section>
 
-        <section className="flex min-h-screen bg-white">
-          <div className="flex min-h-screen w-full flex-col justify-between px-8 py-10 sm:px-12 lg:px-14">
+        <section className="flex min-h-[100dvh] bg-white">
+          <div className="flex min-h-[100dvh] w-full flex-col justify-between px-5 py-8 sm:px-10 lg:px-12">
             <div className="lg:hidden">
               <div className="flex items-center gap-3">
                 <Link

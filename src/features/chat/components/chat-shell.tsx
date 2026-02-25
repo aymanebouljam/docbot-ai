@@ -138,6 +138,7 @@ export function ChatShell({
   const [chatList, setChatList] = useState<ChatListEntry[]>([]);
   const [chatSearch, setChatSearch] = useState("");
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isConversationMenuOpen, setIsConversationMenuOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -323,6 +324,7 @@ export function ChatShell({
     setPendingDeleteScope("single");
     setErrorMessage(null);
     setIsLoadingHistory(false);
+    setIsMobileSidebarOpen(false);
     startTransition(() => {
       router.replace("/", { scroll: false });
     });
@@ -339,6 +341,7 @@ export function ChatShell({
     setPendingDeleteChatId(null);
     setPendingDeleteScope("single");
     setErrorMessage(null);
+    setIsMobileSidebarOpen(false);
     startTransition(() => {
       router.replace(`/?chatId=${nextChatId}`, { scroll: false });
     });
@@ -542,8 +545,8 @@ export function ChatShell({
   }
 
   return (
-    <div className="grid h-screen overflow-hidden bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.16),_transparent_35%),linear-gradient(180deg,_#f7fcfa_0%,_#dcfce7_100%)]">
-      <div className="flex h-screen w-full flex-col overflow-hidden">
+    <div className="grid h-[100dvh] overflow-hidden bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.16),_transparent_35%),linear-gradient(180deg,_#f7fcfa_0%,_#dcfce7_100%)]">
+      <div className="flex h-[100dvh] w-full flex-col overflow-hidden">
         <div
           className={`grid min-h-0 flex-1 ${
             isSidebarCollapsed
@@ -552,9 +555,9 @@ export function ChatShell({
           }`}
         >
           <aside
-            className={`group/sidebar flex min-h-0 flex-col overflow-x-visible overflow-y-hidden border-r border-[#c9e3df] bg-[linear-gradient(180deg,_rgba(233,247,246,0.98)_0%,_rgba(203,232,228,0.98)_100%)] shadow-lg transition-all ${
-              isSidebarCollapsed ? "px-2 py-2" : "px-3 py-2.5"
-            }`}
+            className={`group/sidebar fixed inset-y-0 left-0 z-30 flex h-[100dvh] w-[min(88vw,20rem)] min-h-0 flex-col overflow-hidden border-r border-[#c9e3df] bg-[linear-gradient(180deg,_rgba(233,247,246,0.98)_0%,_rgba(203,232,228,0.98)_100%)] shadow-lg transition-all duration-300 lg:static lg:z-auto lg:h-full lg:w-auto lg:translate-x-0 ${
+              isMobileSidebarOpen ? "translate-x-0" : "-translate-x-full"
+            } ${isSidebarCollapsed ? "px-2 py-2" : "px-3 py-2.5"}`}
             aria-label="Chat sidebar"
           >
             <div
@@ -596,7 +599,7 @@ export function ChatShell({
                 )}
                 <button
                   type="button"
-                  className={`grid h-11 w-11 place-items-center rounded-[0.65rem] text-base-content transition ${
+                  className={`hidden h-11 w-11 place-items-center rounded-[0.65rem] text-base-content transition lg:grid ${
                     isSidebarCollapsed ? "hidden" : "opacity-100"
                   }`}
                   aria-label="Collapse sidebar"
@@ -638,9 +641,9 @@ export function ChatShell({
               </button>
             </div>
 
-            <div className="flex min-h-0 flex-1 flex-col px-1">
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-1">
               {isSidebarCollapsed ? (
-                <div className="flex min-h-0 flex-1 flex-col space-y-3">
+                <div className="flex min-h-0 flex-1 flex-col space-y-3 overflow-hidden">
                   <button
                     type="button"
                     aria-label="Search chats"
@@ -716,8 +719,8 @@ export function ChatShell({
                   </div>
                 </div>
               ) : (
-                <div className="flex min-h-0 flex-1 flex-col gap-4">
-                  <label className="input input-bordered flex items-center gap-2 rounded-full border-base-200 bg-base-100">
+                <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden">
+                  <label className="input input-bordered flex w-full min-w-0 items-center gap-2 rounded-full border-base-200 bg-base-100">
                     <svg
                       aria-hidden="true"
                       className="h-4 w-4 opacity-60"
@@ -733,14 +736,14 @@ export function ChatShell({
                     </svg>
                     <input
                       type="text"
-                      className="grow"
+                      className="grow min-w-0 w-0"
                       placeholder="Search chats"
                       value={chatSearch}
                       onChange={(event) => setChatSearch(event.target.value)}
                     />
                   </label>
 
-                  <div className="flex min-h-0 flex-none flex-col rounded-[1.5rem] border border-base-200 bg-base-100 px-4 py-3">
+                  <div className="flex min-h-0 flex-1 flex-col rounded-[1.5rem] border border-base-200 bg-base-100 px-4 py-3">
                     <div className="mb-3 flex items-center justify-between gap-3">
                       <p className="text-xs font-medium uppercase tracking-[0.18em] text-base-content/45">
                         Your chats
@@ -761,9 +764,7 @@ export function ChatShell({
                       ) : null
                     ) : (
                       <nav
-                        className={`scrollbar-none min-h-0 space-y-2 overflow-x-visible overflow-y-auto ${
-                          hasVisibleChats ? "max-h-[min(52vh,28rem)]" : ""
-                        }`}
+                        className="scrollbar-none min-h-0 flex-1 space-y-2 overflow-x-visible overflow-y-auto"
                         aria-label="Saved conversations"
                       >
                         {filteredChats.map((chat) => (
@@ -883,6 +884,7 @@ export function ChatShell({
                       role="menuitem"
                       onClick={() => {
                         setIsProfileMenuOpen(false);
+                        setIsMobileSidebarOpen(false);
                         router.push("/profile");
                       }}
                     >
@@ -909,6 +911,7 @@ export function ChatShell({
                           method: "POST",
                         });
                         setIsProfileMenuOpen(false);
+                        setIsMobileSidebarOpen(false);
                         router.push("/sign-in");
                       }}
                     >
@@ -920,9 +923,17 @@ export function ChatShell({
               </div>
             </div>
           </aside>
+          {isMobileSidebarOpen ? (
+            <button
+              type="button"
+              aria-label="Close sidebar"
+              className="fixed inset-0 z-20 bg-slate-950/35 backdrop-blur-[1px] lg:hidden"
+              onClick={() => setIsMobileSidebarOpen(false)}
+            />
+          ) : null}
 
           <main
-            className="relative flex min-h-0 flex-col overflow-hidden bg-[linear-gradient(180deg,_rgba(236,253,245,0.78)_0%,_rgba(255,255,255,0.96)_32%,_rgba(236,253,245,0.72)_100%)] px-4 py-5 shadow-xl shadow-emerald-100/80 sm:px-5 sm:py-6"
+            className="relative flex min-h-0 min-w-0 flex-col overflow-hidden bg-[linear-gradient(180deg,_rgba(236,253,245,0.78)_0%,_rgba(255,255,255,0.96)_32%,_rgba(236,253,245,0.72)_100%)] px-3 py-4 shadow-xl shadow-emerald-100/80 sm:px-5 sm:py-6"
             aria-busy={isLoadingHistory || isResponding}
           >
             {errorMessage ? (
@@ -935,10 +946,18 @@ export function ChatShell({
             ) : null}
             <div className="px-5 py-4">
               <div className="flex items-center justify-between gap-3">
-                <div>
+                <div className="flex min-w-0 items-center gap-2">
+                  <button
+                    type="button"
+                    aria-label="Open sidebar"
+                    className="grid h-10 w-10 shrink-0 place-items-center rounded-[0.65rem] text-base-content transition hover:bg-base-200 lg:hidden"
+                    onClick={() => setIsMobileSidebarOpen(true)}
+                  >
+                    <PanelLeft aria-hidden="true" className="h-5 w-5" />
+                  </button>
                   <Link
                     href="/"
-                    className="text-2xl font-semibold tracking-tight transition hover:text-emerald-700 sm:text-3xl"
+                    className="truncate text-2xl font-semibold tracking-tight transition hover:text-emerald-700 sm:text-3xl"
                   >
                     DocBot
                   </Link>
@@ -1056,7 +1075,7 @@ export function ChatShell({
                         {message.role === "user" ? "You" : "DocBot AI"}
                       </div>
                       <div
-                        className={`chat-bubble max-w-[85%] whitespace-pre-wrap text-sm leading-6 sm:text-base ${
+                        className={`chat-bubble max-w-[85%] whitespace-pre-wrap text-[13px] leading-6 sm:text-base ${
                           message.role === "user"
                             ? "border border-emerald-500 bg-emerald-600 text-white"
                             : message.tone === "urgent"
@@ -1116,7 +1135,7 @@ export function ChatShell({
                 <div className="relative">
                   <textarea
                     id="chat-input"
-                    className="textarea h-32 w-full resize-none rounded-[1.4rem] border border-emerald-200 bg-white px-4 py-3 pr-16 text-base leading-7 shadow-sm outline-none focus:outline-none"
+                    className="textarea h-28 w-full resize-none rounded-[1.4rem] border border-emerald-200 bg-white px-4 py-3 pr-16 text-sm leading-6 shadow-sm outline-none focus:outline-none sm:h-32 sm:text-base sm:leading-7"
                     placeholder="Describe your symptom, lab result, medication question, or health concern..."
                     value={draft}
                     aria-describedby="chat-composer-hint chat-safety-hint"

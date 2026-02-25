@@ -102,7 +102,7 @@ export function ProfileForm({ initialUser }: ProfileFormProps) {
   }
 
   return (
-    <main className="min-h-screen bg-[linear-gradient(180deg,_rgba(236,253,245,0.78)_0%,_rgba(255,255,255,0.96)_32%,_rgba(236,253,245,0.72)_100%)] px-6 py-8 text-base-content">
+    <main className="min-h-[100dvh] bg-[linear-gradient(180deg,_rgba(236,253,245,0.78)_0%,_rgba(255,255,255,0.96)_32%,_rgba(236,253,245,0.72)_100%)] px-4 py-6 text-base-content sm:px-6 sm:py-8">
       <div className="mx-auto max-w-5xl">
         <div className="mb-8 flex items-center justify-between gap-4">
           <div>
@@ -122,7 +122,7 @@ export function ProfileForm({ initialUser }: ProfileFormProps) {
           </div>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-[300px_minmax(0,1fr)]">
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,280px)_minmax(0,1fr)]">
           <section className="rounded-[2rem] border border-emerald-100 bg-white/95 p-6 shadow-sm">
             <div className="flex flex-col items-center text-center">
               <div className="relative">
