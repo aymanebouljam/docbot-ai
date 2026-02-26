@@ -599,8 +599,8 @@ export function ChatShell({
                 )}
                 <button
                   type="button"
-                  className={`hidden h-11 w-11 place-items-center rounded-[0.65rem] text-base-content transition lg:grid ${
-                    isSidebarCollapsed ? "hidden" : "opacity-100"
+                  className={`hidden h-11 w-11 place-items-center rounded-[0.65rem] text-base-content transition ${
+                    isSidebarCollapsed ? "lg:hidden" : "lg:grid"
                   }`}
                   aria-label="Collapse sidebar"
                   onClick={toggleSidebar}
