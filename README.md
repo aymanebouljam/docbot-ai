@@ -1,6 +1,6 @@
 # DocBot AI
 
-DocBot AI is a medical-only chatbot built with Next.js, TypeScript, Tailwind CSS, DaisyUI, Prisma, SQLite, and Groq.
+A focused medical chatbot designed to answer only health-related questions, providing relevant and meaningful interactions.
 
 ## Project Demo
 
