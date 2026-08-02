@@ -4,11 +4,7 @@ A focused medical chatbot designed to answer only health-related questions, prov
 
 ## Project Demo
 
-<p>Click the preview below to watch the demo. Use Ctrl + Click or open in a new tab if needed.</p>
-
-<a href="https://youtu.be/49XmlydHS3A">
-  <img src="https://img.youtube.com/vi/49XmlydHS3A/maxresdefault.jpg" alt="Project Demo" width="100%" />
-</a>
+[![Watch on YouTube](https://img.shields.io/badge/Watch%20on-YouTube-FF0000?logo=youtube&logoColor=white)](https://youtu.be/49XmlydHS3A)
 
 ## Features
 
